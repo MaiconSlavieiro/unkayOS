@@ -1,0 +1,87 @@
+<!-- apps/about/index.html -->
+<div id="about-app" class="about-app">
+    <div class="about-header">
+        <img src="/assets/icons/apps/about_icon.svg" alt="Info Icon" class="about-icon">
+        <h1 class="about-title" id="aboutTitle">Sobre o UnkayOS</h1>
+    </div>
+    <div class="about-content">
+        <p><span class="label">Sistema Operacional:</span> <span id="osName">UnkayOS</span></p>
+        <p><span class="label">Versão:</span> <span id="osVersion">1.0.0 (Beta)</span></p>
+        <p><span class="label">Kernel:</span> <span id="kernelInfo">JavaScript/HTML/CSS</span></p>
+        <p><span class="label">Uptime:</span> <span id="uptimeInfo">Calculando...</span></p>
+        <p><span class="label">Desenvolvido por:</span> <span id="developerInfo">Seu Nome/Organização</span></p>
+        <p class="about-description" id="aboutDescription">
+            UnkayOS é um sistema operacional web minimalista e modular, projetado para demonstrar
+            conceitos de gerenciamento de janelas, aplicativos e comunicação inter-processos
+            diretamente no navegador.
+        </p>
+    </div>
+    <div class="about-footer">
+        <p>&copy; 2024 UnkayOS. Todos os direitos reservados.</p>
+    </div>
+</div>
+
+<style>
+    .about-app {
+        font-family: 'Inter', sans-serif;
+        color: #e0e0e0; /* Cor de texto clara */
+        background-color: #2b2b2b; /* Fundo escuro, similar ao tema do sistema */
+        display: flex;
+        flex-direction: column;
+        width: 100%;
+        height: 100%;
+        padding: 20px;
+        box-sizing: border-box;
+        overflow: auto; /* Permite rolagem se o conteúdo for muito grande */
+    }
+
+    .about-header {
+        display: flex;
+        align-items: center;
+        margin-bottom: 20px;
+        border-bottom: 1px solid #444;
+        padding-bottom: 15px;
+    }
+
+    .about-icon {
+        width: 48px;
+        height: 48px;
+        margin-right: 15px;
+    }
+
+    .about-title {
+        font-size: 1.8em;
+        font-weight: 600;
+        color: #0ea5e9; /* sky-600 para destaque */
+    }
+
+    .about-content p {
+        margin-bottom: 10px;
+        font-size: 0.95em;
+    }
+
+    .about-content .label {
+        font-weight: 500;
+        color: #a0a0a0; /* Cor um pouco mais clara para labels */
+        display: inline-block;
+        width: 120px; /* Alinha os dois pontos */
+    }
+
+    .about-description {
+        margin-top: 20px;
+        line-height: 1.6;
+        font-style: italic;
+        color: #c0c0c0;
+        border-top: 1px solid #444;
+        padding-top: 15px;
+    }
+
+    .about-footer {
+        margin-top: auto; /* Empurra o rodapé para o final */
+        padding-top: 15px;
+        border-top: 1px solid #444;
+        text-align: center;
+        font-size: 0.8em;
+        color: #888;
+    }
+</style>

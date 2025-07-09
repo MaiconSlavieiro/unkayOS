@@ -1,31 +1,5 @@
 {
-  "apps": [
-    {
-      "app_name": "Code",
-      "id": "code",
-      "width": "80vw",
-      "height": "80vh",
-      "x_position": 80,
-      "y_position": 90,
-      "dirApp": "/apps/code/index.html",
-      "jsFile": "/apps/code/main.js",
-      "icon_url": "/assets/icons/apps/code_app.svg",
-      "hidden": true,
-      "mode": "system_window"
-    },
-    {
-      "app_name": "Game Store",
-      "id": "gameStore",
-      "width": "80vw",
-      "height": "80vh",
-      "x_position": 25,
-      "y_position": 190,
-      "dirApp": "/apps/gamestore/index.html",
-      "jsFile": "/apps/gamestore/main.js",
-      "icon_url": "/assets/icons/apps/gamestore_app.svg",
-      "hidden": true,
-      "mode": "system_window"
-    },
+  "apps": [ 
     {
       "app_name": "Terminal",
       "id": "terminal",
@@ -40,37 +14,18 @@
       "mode": "system_window"
     },
     {
-      "app_name": "Snake Game",
-      "id": "snakeGame",
-      "width": "450px",
-      "height": "550px",
-      "x_position": "50vw",
-      "y_position": "30vh",
-      "dirApp": "/apps/snake_game/index.html",
-      "jsFile": "/apps/snake_game_/main.js",
-      "icon_url": "/assets/icons/apps/snake_game_app.svg",
-      "hidden": true,
-      "mode": "system_window"
-    },
-    {
-      "app_name": "Background Logger",
-      "id": "backgroundLogger",
-      "jsFile": "/apps/my_headless_app/main.js",
-      "mode": "headless",
-      "autorun": true,
-      "hidden": true
-    },
-    {
-      "app_name": "Simple Test App",
-      "id": "simpleTestApp",
-      "width": "400px",
-      "height": "250px",
+      "id": "about",
+      "app_name": "Sobre UnkayOS",
+      "icon_url": "/assets/icons/apps/about_icon.svg",
+      "dirApp": "/apps/about/index.html",
+      "jsFile": "/apps/about/main.js",
+      "mode": "system_window",
+      "width": "30vw",
+      "height": "40vh",
       "x_position": "30vw",
-      "y_position": "20vh",
-      "dirApp": "/apps/simple_test_app/index.html",
-      "jsFile": "/apps/simple_test_app/main.js",  
-      "hidden": false,
-      "mode": "system_window"
+      "y_position": "30vh",
+      "min_width": 350,
+      "min_height": 300
     }
   ]
 }
