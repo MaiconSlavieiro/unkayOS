@@ -1,0 +1,17 @@
+{
+    "app_name": "Terminal",
+    "icon_url": "/assets/icons/apps/terminal.svg",
+    "dirApp": "index.html",    
+    "jsFile": "main.js",      
+    "styleFile": "style.less", 
+    "mode": "system_window",
+    "width": "800px",
+    "height": "500px",
+    "x_position": "10vw",
+    "y_position": "10vh",
+    "min_width": 200,
+    "min_height": 100,
+    "autorun": false,
+    "hidden": false
+  }
+  

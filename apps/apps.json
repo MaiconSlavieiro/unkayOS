@@ -1,31 +1,7 @@
 {
-  "apps": [ 
-    {
-      "app_name": "Terminal",
-      "id": "terminal",
-      "width": "30vw",
-      "height": "35vh",
-      "x_position": "25vw",
-      "y_position": "35vh",
-      "dirApp": "/apps/terminal/index.html",
-      "jsFile": "/apps/terminal/main.js",
-      "icon_url": "/assets/icons/apps/terminal_app.svg",
-      "autorun": true,
-      "mode": "system_window"
-    },
-    {
-      "id": "about",
-      "app_name": "Sobre UnkayOS",
-      "icon_url": "/assets/icons/apps/about_icon.svg",
-      "dirApp": "/apps/about/index.html",
-      "jsFile": "/apps/about/main.js",
-      "mode": "system_window",
-      "width": "30vw",
-      "height": "40vh",
-      "x_position": "30vw",
-      "y_position": "30vh",
-      "min_width": 350,
-      "min_height": 300
-    }
+  "app_configs": [
+    { "id": "terminal", "path": "/apps/terminal/" },
+    { "id": "browser", "path": "/apps/browser/" },
+    { "id": "about", "path": "/apps/about/" }
   ]
 }

@@ -1,42 +1,42 @@
-// /core/AppCore.js - v1.0.18
+// /core/AppCore.js - v1.0.23
 
 import { BaseApp } from './BaseApp.js';
 
 export class AppCore {
-    constructor(data) {
-      this.id = data.id || Math.floor(Math.random() * 65536);
+    constructor(appData) { // Agora recebe appData já resolvido
+      this.id = appData.id || Math.floor(Math.random() * 65536);
       this.instanceId = `${this.id}-${Math.floor(Math.random() * 65536)}`;
-      this.app_name = data.app_name || this.instanceId;
+      this.app_name = appData.app_name || this.instanceId;
 
-      this.icon_url = data.icon_url || "/assets/icons/apps/generic_app_icon.svg";
-      this.hidden = data.hidden || false;
-      this.autorun = data.autorun || false;
+      this.icon_url = appData.icon_url || "/assets/icons/apps/generic_app_icon.svg";
+      this.hidden = appData.hidden || false;
+      this.autorun = appData.autorun || false;
 
-      this.dirApp = data.dirApp || "";
-      this.jsFile = data.jsFile || "";
-      this.mode = data.mode || "system_window";
+      // Caminhos já absolutos, resolvidos pelo AppManager
+      this.dirApp = appData.dirApp || ""; 
+      this.jsFile = appData.jsFile || ""; 
+      this.styleFile = appData.styleFile || ""; // Novo: caminho para o style.less do app
+      this.mode = appData.mode || "system_window";
 
-      this.rawData = data;
+      this.rawData = appData; // Mantém os dados originais também
       this.appInstance = null; // Armazenará a instância do aplicativo (ex: TerminalApp)
 
       this.managedTimeouts = new Set();
       this.managedIntervals = new Set();
     }
 
-    async run(desktop, terminalOutputCallback = null, appParams = []) {
+    async run(desktopElement, terminalOutputCallback = null, appParams = []) {
       // Prepara as APIs padrão que serão passadas para o construtor da BaseApp
       const standardAPIs = {
           setTimeout: (callback, delay, ...args) => {
-              const id = setTimeout(() => {
+              const id = this.managedTimeouts.add(setTimeout(() => {
                   this.managedTimeouts.delete(id);
                   callback(...args);
-              }, delay);
-              this.managedTimeouts.add(id);
+              }, delay));
               return id;
           },
           setInterval: (callback, delay, ...args) => {
-              const id = setInterval(callback, delay, ...args);
-              this.managedIntervals.add(id);
+              const id = this.managedIntervals.add(setInterval(callback, delay, ...args));
               return id;
           },
           clearTimeout: (id) => {
@@ -67,15 +67,16 @@ export class AppCore {
       switch (this.mode) {
         case "system_window": {
           const { AppWindowSystem } = await import('./AppWindowSystem.js');
-          // Passa a instância do AppCore e o desktop para o AppWindowSystem
-          const windowApp = new AppWindowSystem(this, desktop); 
+          // Passa a instância do AppCore (que contém this.appInstance e os caminhos resolvidos)
+          // e o desktopElement para o AppWindowSystem.
+          const windowApp = new AppWindowSystem(this, desktopElement); 
           // AppWindowSystem será responsável por chamar onRun() após o DOM estar pronto
           return windowApp;
         }
 
         case "custom_ui": {
           const { AppCustomUI } = await import('./AppCustomUI.js');
-          const customUIApp = new AppCustomUI(this, desktop);
+          const customUIApp = new AppCustomUI(this, desktopElement);
           // AppCustomUI seria responsável por chamar onRun()
           return customUIApp;
         }

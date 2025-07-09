@@ -1,4 +1,4 @@
-// apps/terminal/main.js - v1.0.21
+// apps/terminal/main.js - v1.0.23
 
 // Importe a classe BaseApp
 import { BaseApp } from '../../core/BaseApp.js'; // Ajuste o caminho conforme a sua estrutura de pastas
@@ -139,7 +139,8 @@ export default class TerminalApp extends BaseApp {
     onRun() {
         console.log(`[${this.appName} - ${this.instanceId}] TerminalApp.onRun() started. DOM should be ready.`);
 
-        // Agora, o elemento raiz do terminal é o próprio appElement, que tem o ID da instância
+        // O elemento raiz do terminal é o próprio appElement, que tem o ID da instância
+        // Ele é acessado diretamente pelo document.getElementById(this.instanceId)
         this.terminalAppElement = document.getElementById(this.instanceId);
 
         if (!this.terminalAppElement) {
@@ -151,7 +152,7 @@ export default class TerminalApp extends BaseApp {
         this.terminalOutputElement = this.terminalAppElement.querySelector('#terminalOutput');
         this.inputElement = this.terminalAppElement.querySelector('#terminalInput');
         this.terminalInputLine = this.terminalAppElement.querySelector('.terminal-input-line');
-        this.terminalPromptElement = this.terminalAppElement.querySelector('.terminal-prompt');
+        this.terminalPromptElement = this.terminalAppElement.querySelector('#terminalPrompt'); // Usar ID para o prompt
 
         if (!this.terminalOutputElement || !this.inputElement || !this.terminalInputLine || !this.terminalPromptElement) {
             console.error(`[${this.appName} - ${this.instanceId}] Erro: Um ou mais elementos do terminal (output, input, input-line, prompt) não foram encontrados!`);

@@ -1,185 +1,276 @@
-// /core/AppManager.js - v1.0.18
+// /core/AppManager.js - v1.0.23
 
 import { AppCore } from './AppCore.js';
 
+/**
+ * Gerencia todas as instâncias de aplicativos em execução no sistema.
+ * Responsável por iniciar, parar e manter o estado dos aplicativos.
+ */
 export class AppManager {
-    constructor(desktop, iconsLocality, allAppsData) {
-        this.desktop = desktop;
-        this.iconsLocality = iconsLocality;
-        this.allAppsData = allAppsData;
-        this.runningApps = [];
-        this.runningHeadlessApps = [];
-        this.firstPlaneApp = null;
-        this.currentZIndex = 100;
+    constructor(desktopElement, appsOnToolBarElement, appConfigs) { 
+        this.desktopElement = desktopElement; 
+        this.appsOnToolBarElement = appsOnToolBarElement; 
+        this.baseAppConfigs = appConfigs; // Lista de {id, path} do apps.json
+        this.loadedAppDetails = new Map(); // Map<appId, fullAppData> onde fullAppData tem caminhos absolutos
+        
+        this.runningApps = new Map(); // Map<instanceId, {appCoreInstance, appUIInstance, appTaskbarIcon}>
+        this.activeAppInstanceId = null; 
 
-        window.appManager = this;
-    }
+        this.initialZIndex = 100; 
 
-    get apps() {
-        return this.runningApps;
+        window.appManager = this; // Garante acesso global
     }
 
     /**
-     * Executa uma nova instância de um aplicativo com base no seu ID.
-     * @param {string} appId - O ID único do aplicativo a ser executado.
-     * @param {function} [terminalOutputCallback=null] - Função de callback para enviar output para o terminal (opcional).
-     * @param {Array<string>} [appParams=[]] - Array de parâmetros a serem passados para o aplicativo (opcional).
-     * @returns {Promise<object|null>} A instância da janela do aplicativo (AppWindowSystem/AppCustomUI) ou null se for headless.
+     * Carrega os arquivos config.json de cada aplicativo e resolve seus caminhos.
      */
-    async runApp(appId, terminalOutputCallback = null, appParams = []) { // NOVO: terminalOutputCallback e appParams
-        const appData = this.allAppsData.find(app => app.id === appId);
+    async loadAppConfigs() {
+        const loadPromises = this.baseAppConfigs.map(async (baseConfig) => {
+            try {
+                const configUrl = `${baseConfig.path}config.json`;
+                const response = await fetch(configUrl);
+                if (!response.ok) {
+                    throw new Error(`HTTP error! status: ${response.status} for ${configUrl}`);
+                }
+                const appConfig = await response.json();
 
+                // Resolve caminhos relativos para absolutos
+                const fullAppData = {
+                    ...appConfig,
+                    id: baseConfig.id, // Garante que o ID do apps.json seja o principal
+                    basePath: baseConfig.path, // Salva o caminho base para referência
+                    dirApp: appConfig.dirApp ? `${baseConfig.path}${appConfig.dirApp}` : null,
+                    jsFile: appConfig.jsFile ? `${baseConfig.path}${appConfig.jsFile}` : null,
+                    styleFile: appConfig.styleFile ? `${baseConfig.path}${appConfig.styleFile}` : null,
+                    // Outras propriedades como icon_url já devem ser absolutas ou serão resolvidas na AppCore/UI
+                };
+                this.loadedAppDetails.set(baseConfig.id, fullAppData);
+                console.log(`[AppManager] Configuração do app '${baseConfig.id}' carregada e resolvida.`);
+            } catch (error) {
+                console.error(`[AppManager] Erro ao carregar config.json para app '${baseConfig.id}':`, error);
+            }
+        });
+        await Promise.all(loadPromises);
+    }
+
+    /**
+     * Inicia os aplicativos marcados como autorun.
+     */
+    initAutorunApps() {
+        this.loadedAppDetails.forEach(appData => {
+            if (appData.autorun) {
+                this.runApp(appData.id);
+            }
+        });
+    }
+
+    /**
+     * Inicia um aplicativo pelo seu ID.
+     * @param {string} appId - O ID do aplicativo a ser iniciado (conforme apps.json).
+     * @param {function} [terminalOutputCallback=null] - Função de callback para enviar output para o terminal.
+     * @param {Array<string>} [appParams=[]] - Parâmetros a serem passados ao iniciar o app.
+     * @returns {string|null} O instanceId do aplicativo iniciado, ou null se falhar.
+     */
+    async runApp(appId, terminalOutputCallback = null, appParams = []) {
+        const appData = this.loadedAppDetails.get(appId);
         if (!appData) {
-            console.error(`Erro: Aplicativo com ID '${appId}' não encontrado.`);
+            console.error(`Aplicativo com ID '${appId}' não encontrado ou não carregado.`);
             return null;
         }
 
-        // Passa terminalOutputCallback e appParams para o construtor do AppCore
-        const appCore = new AppCore(appData);
-        // O AppCore é responsável por decidir como passar esses parâmetros para o appInstance
-        const appInstance = await appCore.run(this.desktop, terminalOutputCallback, appParams); 
-
-        if (appInstance) {
-            this.runningApps.push(appInstance);
-            this.createIcon(appInstance);
-            this.setFirstPlaneApp(appInstance);
-        } else {
-            this.runningHeadlessApps.push(appCore);
+        // Para apps custom_ui ou headless, verifica se já está rodando
+        if ((appData.mode === 'custom_ui' || appData.mode === 'headless') && this.isAppRunning(appId)) {
+            console.warn(`Aplicativo '${appId}' (${appData.mode}) já está em execução. Não iniciando nova instância.`);
+            return null;
         }
 
-        return appInstance;
+        const appCoreInstance = new AppCore(appData);
+
+        try {
+            // Passa o desktopElement (agora 'screenElement' no AppWindowSystem)
+            const appUIInstance = await appCoreInstance.run(this.desktopElement, terminalOutputCallback, appParams); 
+
+            this.runningApps.set(appCoreInstance.instanceId, {
+                appCoreInstance: appCoreInstance,
+                appUIInstance: appUIInstance, 
+                appTaskbarIcon: null 
+            });
+
+            if (appData.mode === 'system_window' && appUIInstance) {
+                this.createIcon(appCoreInstance);
+                this.setFirstPlaneApp(appCoreInstance.instanceId);
+            }
+
+            console.log(`Aplicativo '${appData.app_name}' (instanceId: ${appCoreInstance.instanceId}) iniciado no modo: ${appData.mode}`);
+            return appCoreInstance.instanceId;
+
+        }
+        catch (error) {
+            console.error(`Erro ao iniciar o aplicativo '${appData.app_name}' (ID: ${appId}):`, error);
+            this.runningApps.delete(appCoreInstance.instanceId);
+            return null;
+        }
     }
 
-    createIcon(appInstance) {
-        const iconInstance = document.createElement('div');
-        iconInstance.classList.add('tool_bar__apps_on__app_icon');
-        iconInstance.id = appInstance.instanceId + 'i';
+    /**
+     * Verifica se um aplicativo específico (pelo seu appId) já está em execução.
+     * @param {string} appId - O ID do aplicativo.
+     * @returns {boolean} True se o aplicativo está em execução, false caso contrário.
+     */
+    isAppRunning(appId) {
+        for (const [instanceId, appInfo] of this.runningApps.entries()) {
+            if (appInfo.appCoreInstance.id === appId) {
+                return true;
+            }
+        }
+        return false;
+    }
 
-        iconInstance.addEventListener('click', () => {
-            if (this.firstPlaneApp && this.firstPlaneApp.instanceId === appInstance.instanceId) {
-                if (appInstance.toggleVisibility) {
-                    appInstance.toggleVisibility();
-                } else if (appInstance.visibilitySwitch) { // Caso para AppCustomUI
-                    appInstance.visibilitySwitch();
+    /**
+     * Cria e anexa o ícone de um aplicativo à barra de tarefas.
+     * @param {object} appCoreInstance - A instância do AppCore do aplicativo.
+     */
+    createIcon(appCoreInstance) {
+        if (appCoreInstance.mode !== 'system_window') return; 
+
+        const appIconDiv = document.createElement('div');
+        appIconDiv.classList.add('tool_bar__apps_on__app_icon'); // Este div será o elemento clicável
+        appIconDiv.dataset.instanceId = appCoreInstance.instanceId; 
+
+        const appIconImg = document.createElement('img');
+        appIconImg.classList.add('tool_bar__apps_on__app_icon__img'); // A imagem dentro do div
+        appIconImg.src = appCoreInstance.icon_url;
+
+        appIconDiv.appendChild(appIconImg); // Adiciona a imagem ao div do ícone
+        this.appsOnToolBarElement.appendChild(appIconDiv); // Adiciona o div do ícone à barra de tarefas
+
+        // Adiciona evento de clique para trazer a janela para o primeiro plano ou minimizar/restaurar
+        appIconDiv.addEventListener('click', () => {
+            const appInfo = this.runningApps.get(appIconDiv.dataset.instanceId);
+            if (appInfo && appInfo.appUIInstance) {
+                if (appInfo.appUIInstance.isMinimized) {
+                    // Se o app está minimizado, restaura e traz para o primeiro plano
+                    appInfo.appUIInstance.toggleVisibility(); // Restaura a janela
+                    appIconDiv.classList.remove('minimized'); // Remove o estado minimizado do ícone
+                    this.setFirstPlaneApp(appIconDiv.dataset.instanceId);
+                } else if (this.activeAppInstanceId === appIconDiv.dataset.instanceId) {
+                    // Se o app é o ativo, minimiza
+                    appInfo.appUIInstance.toggleVisibility(); // Minimiza a janela
+                    appIconDiv.classList.add('minimized'); // Adiciona o estado minimizado ao ícone
+                } else {
+                    // Se o app não está minimizado e não é o ativo, traz para o primeiro plano
+                    this.setFirstPlaneApp(appIconDiv.dataset.instanceId);
+                    // Se a janela estava oculta por algum motivo (mas não marcada como minimized),
+                    // garante que ela seja exibida ao ser focada.
+                    if (appInfo.appUIInstance.appWindowElement.style.display === 'none') {
+                        appInfo.appUIInstance.appWindowElement.style.display = 'block';
+                    }
                 }
-            } else {
-                this.setFirstPlaneApp(appInstance);
             }
         });
 
-        const iconImg = document.createElement('img');
-        iconImg.classList.add('tool_bar__apps_on__app_icon__img');
-        iconImg.src = appInstance.core?.icon_url || '/assets/icons/apps/generic_app_icon.svg';
-
-        iconInstance.appendChild(iconImg);
-        this.iconsLocality.appendChild(iconInstance);
-
-        appInstance.iconInstance = iconInstance;
-    }
-
-    setFirstPlaneApp(appInstance) {
-        if (this.firstPlaneApp && this.firstPlaneApp.instanceId !== appInstance.instanceId) {
-            if (this.firstPlaneApp.iconInstance) {
-                this.firstPlaneApp.iconInstance.classList.remove('active');
-            }
-            if (this.firstPlaneApp.appElement) {
-                this.firstPlaneApp.appElement.classList.remove('active-app');
-                this.firstPlaneApp.appElement.classList.remove('first_plane');
-            }
-        }
-
-        if (appInstance.iconInstance) {
-            appInstance.iconInstance.classList.add('active');
-        }
-
-        this.firstPlaneApp = appInstance;
-
-        if (this.firstPlaneApp.appElement) {
-            this.currentZIndex++;
-            this.firstPlaneApp.appElement.style.zIndex = this.currentZIndex;
-            this.firstPlaneApp.appElement.classList.add('active-app');
-            this.firstPlaneApp.appElement.classList.add('first_plane');
+        const appInfo = this.runningApps.get(appCoreInstance.instanceId);
+        if (appInfo) {
+            appInfo.appTaskbarIcon = appIconDiv;
         }
     }
 
+    /**
+     * Traz uma janela de aplicativo para o primeiro plano (maior z-index).
+     * @param {string} instanceId - O instanceId do aplicativo a ser ativado.
+     */
+    setFirstPlaneApp(instanceId) {
+        const appInfoToActivate = this.runningApps.get(instanceId);
+
+        if (!appInfoToActivate || !appInfoToActivate.appUIInstance || appInfoToActivate.appCoreInstance.mode !== 'system_window') {
+            console.warn(`Tentativa de ativar app não-janela ou inexistente: ${instanceId}`);
+            return;
+        }
+
+        // Remove a classe 'active' de todos os ícones da barra de tarefas
+        this.appsOnToolBarElement.querySelectorAll('.tool_bar__apps_on__app_icon').forEach(icon => {
+            icon.classList.remove('active');
+        });
+
+        // Remove a classe 'active-app' e reinicia z-index para todas as janelas
+        this.desktopElement.querySelectorAll('.app').forEach(appElement => { 
+            appElement.classList.remove('active-app');
+            appElement.style.zIndex = this.initialZIndex; 
+        });
+
+        // Define o novo aplicativo ativo
+        this.activeAppInstanceId = instanceId;
+        const appWindowElement = appInfoToActivate.appUIInstance.appWindowElement;
+
+        if (appWindowElement) {
+            appWindowElement.classList.add('active-app');
+            appWindowElement.style.zIndex = this.initialZIndex + 1; 
+
+            // Ativa o ícone correspondente na barra de tarefas
+            if (appInfoToActivate.appTaskbarIcon) {
+                appInfoToActivate.appTaskbarIcon.classList.add('active');
+            }
+        }
+    }
+
+    /**
+     * Remove um aplicativo em execução pelo seu instanceId.
+     * @param {string} instanceId - O instanceId do aplicativo a ser removido.
+     */
     removeApp(instanceId) {
-        let index = this.runningApps.findIndex(app => app.instanceId === instanceId);
-        if (index !== -1) {
-            const app = this.runningApps[index];
-
-            // Chamar onCleanup na instância do AppCore antes de remover a janela
-            if (app.core && app.core.stop && typeof app.core.stop === 'function') {
-                app.core.stop();
-            }
-
-            if (app.close && typeof app.close === 'function') {
-                app.close(); // Isso remove o appElement
-            }
-
-            if (app.iconInstance && this.iconsLocality.contains(app.iconInstance)) {
-                this.iconsLocality.removeChild(app.iconInstance);
-            }
-
-            this.runningApps.splice(index, 1);
-
-            if (this.firstPlaneApp && this.firstPlaneApp.instanceId === instanceId) {
-                this.firstPlaneApp = null;
-            }
-
-            if (!this.firstPlaneApp && this.runningApps.length > 0) {
-                this.setFirstPlaneApp(this.runningApps[this.runningApps.length - 1]);
-            }
+        const appInfo = this.runningApps.get(instanceId);
+        if (!appInfo) {
+            console.warn(`Aplicativo com instanceId '${instanceId}' não encontrado para remoção.`);
             return;
         }
 
-        index = this.runningHeadlessApps.findIndex(appCore => appCore.instanceId === instanceId);
-        if (index !== -1) {
-            const appCore = this.runningHeadlessApps[index];
-            if (appCore.stop && typeof appCore.stop === 'function') {
-                appCore.stop();
-            }
-            this.runningHeadlessApps.splice(index, 1);
-            return;
+        // Apps custom_ui (apps de sistema) não podem ser fechados pelo usuário
+        if (appInfo.appCoreInstance.mode === "custom_ui") {
+            console.warn(`[AppManager] Tentativa de remover aplicativo de sistema (custom_ui) '${appInfo.appCoreInstance.app_name}' (ID: ${instanceId}). Não permitido.`);
+            return; 
         }
-        console.warn(`[AppManager] Tentativa de remover app com instanceId '${instanceId}' que não foi encontrado.`);
+
+        // Chama o método stop() do AppCore para limpeza
+        appInfo.appCoreInstance.stop();
+
+        // Se o aplicativo tem uma UI (AppWindowSystem ou AppCustomUI), remove seu elemento DOM
+        if (appInfo.appUIInstance && appInfo.appUIInstance.appWindowElement) { // Para system_window
+            appInfo.appUIInstance.appWindowElement.remove();
+        } else if (appInfo.appUIInstance && appInfo.appUIInstance.appElement) { // Para custom_ui (embora não seja removível por aqui)
+             appInfo.appUIInstance.appElement.remove();
+        }
+
+        // Remove o ícone da barra de tarefas, se existir
+        if (appInfo.appTaskbarIcon) {
+            appInfo.appTaskbarIcon.remove();
+        }
+
+        // Remove o aplicativo do mapa de aplicativos em execução
+        this.runningApps.delete(instanceId);
+
+        // Se o app removido era o ativo, limpa o estado
+        if (this.activeAppInstanceId === instanceId) {
+            this.activeAppInstanceId = null;
+        }
+
+        console.log(`Aplicativo (instanceId: ${instanceId}) removido.`);
     }
 
+    /**
+     * Encerra todos os aplicativos em execução (exceto custom_ui, que são considerados de sistema).
+     */
     killAll() {
-        // Copia os arrays para evitar problemas de modificação durante a iteração
-        const appsToKillUI = [...this.runningApps];
-        appsToKillUI.forEach(app => {
-            // Certifica-se de chamar o stop do AppCore para limpeza de timeouts/intervals
-            if (app.core && app.core.stop && typeof app.core.stop === 'function') {
-                app.core.stop();
+        const instanceIdsToKill = [];
+        for (const [instanceId, appInfo] of this.runningApps.entries()) {
+            if (appInfo.appCoreInstance.mode !== 'custom_ui') {
+                instanceIdsToKill.push(instanceId);
             }
-            if (app.close && typeof app.close === 'function') {
-                app.close(); // Isso remove o appElement
-            }
+        }
+
+        instanceIdsToKill.forEach(instanceId => {
+            this.removeApp(instanceId);
         });
-        this.runningApps = []; // Limpa o array após remover todos
 
-        const appsToKillHeadless = [...this.runningHeadlessApps];
-        appsToKillHeadless.forEach(appCore => {
-            if (appCore.stop && typeof appCore.stop === 'function') {
-                appCore.stop();
-            }
-        });
-        this.runningHeadlessApps = []; // Limpa o array após remover todos
-
-        // Remove os ícones da barra de tarefas
-        this.iconsLocality.innerHTML = '';
-
-        this.firstPlaneApp = null;
-        this.currentZIndex = 100;
-        console.log(`Todos os aplicativos (não-sistema) foram encerrados.`);
-    }
-
-    logStatus() {
-        const uiApps = this.runningApps.map(a => a.instanceId);
-        const headlessApps = this.runningHeadlessApps.map(a => a.instanceId);
-        console.log('--- Status dos Aplicativos ---');
-        console.log('Aplicativos com UI em execução:', uiApps);
-        console.log('Aplicativos Headless em execução:', headlessApps);
-        console.log('------------------------------');
+        console.log(`Todos os aplicativos de janela e headless foram encerrados.`);
     }
 }
