@@ -1,4 +1,4 @@
-// /core/AppCore.js
+// /core/AppCore.js - v1.0.18
 
 import { BaseApp } from './BaseApp.js';
 
@@ -67,8 +67,8 @@ export class AppCore {
       switch (this.mode) {
         case "system_window": {
           const { AppWindowSystem } = await import('./AppWindowSystem.js');
-          // Passa a instância do AppCore (que contém this.appInstance) para o AppWindowSystem
-          const windowApp = new AppWindowSystem(this, desktop);
+          // Passa a instância do AppCore e o desktop para o AppWindowSystem
+          const windowApp = new AppWindowSystem(this, desktop); 
           // AppWindowSystem será responsável por chamar onRun() após o DOM estar pronto
           return windowApp;
         }
@@ -95,9 +95,6 @@ export class AppCore {
           return null;
       }
     }
-
-    // runLogic foi integrado diretamente no método run, ou pode ser removido se não for mais necessário
-    // async runLogic(terminalOutputCallback = null, appParams = []) { /* ... */ }
 
     stop() {
         if (this.appInstance && typeof this.appInstance.onCleanup === "function") {

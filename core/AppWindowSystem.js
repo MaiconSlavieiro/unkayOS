@@ -1,11 +1,11 @@
-// core/AppWindowSystem.js
+// /core/AppWindowSystem.js - v1.0.18
 
-import { convertPx2 } from './utils.js';
+// import { convertPx2 } from './utils.js'; // Removido, pois não está sendo usado no código fornecido
 
 export class AppWindowSystem {
   constructor(core, desktop) {
     this.core = core;
-    this.desktop = desktop;
+    this.desktop = desktop; // O elemento principal (div#desktop)
     this.instanceId = core.instanceId;
     this.appName = core.app_name;
 
@@ -82,6 +82,7 @@ export class AppWindowSystem {
       ["app__board_left", this.enableResizeLeft.bind(this)],
       ["app__board_top", this.enableResizeTop.bind(this)],
       ["app__board_bottom", this.enableResizeBottom.bind(this)]
+      // As alças de canto não estão no código original fornecido, então não as incluímos aqui.
     ];
 
     borders.forEach(([cls, fn]) => {
@@ -101,8 +102,9 @@ export class AppWindowSystem {
     this.appElement.style.top = this.initialY;
 
     // NOVO: Chama onRun() na instância do aplicativo APÓS o elemento da janela ser anexado ao DOM
+    // E sem parâmetros, como na sua versão original.
     if (this.core.appInstance && typeof this.core.appInstance.onRun === "function") {
-        this.core.appInstance.onRun(); // Chama onRun sem parâmetros para apps de UI
+        this.core.appInstance.onRun(); 
     } else {
         console.warn(`[${this.appName} - ${this.instanceId}] Nenhuma instância de app ou método onRun encontrado para chamar após renderização.`);
     }

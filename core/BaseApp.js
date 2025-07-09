@@ -1,4 +1,4 @@
-// /core/BaseApp.js
+// /core/BaseApp.js - v1.0.19
 
 /**
  * Classe Base para todos os aplicativos no sistema.
@@ -11,6 +11,7 @@ export class BaseApp {
      * @param {object} standardAPIs - Objeto contendo APIs padrão (ex: { setTimeout, setInterval, clearTimeout, clearInterval, appManager }).
      */
     constructor(appCoreInstance, standardAPIs) {
+        console.log(`[${appCoreInstance.app_name} - ${appCoreInstance.instanceId}] BaseApp constructor: standardAPIs received:`, standardAPIs);
         if (!appCoreInstance) {
             console.error("BaseApp: appCoreInstance é obrigatório.");
             throw new Error("AppCoreInstance não fornecido ao BaseApp.");
@@ -26,8 +27,7 @@ export class BaseApp {
         this.clearInterval = standardAPIs.clearInterval;
         this.appManager = standardAPIs.appManager; // Instância do AppManager
 
-        // REMOVIDO: this.appendToTerminal e this.params não são mais definidos aqui.
-        // Eles serão passados diretamente para o onRun de apps headless.
+        console.log(`[${this.appName} - ${this.instanceId}] BaseApp constructor: this.setInterval after assignment:`, this.setInterval);
     }
 
     onRun() {

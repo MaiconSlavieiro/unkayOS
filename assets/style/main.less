@@ -1,4 +1,4 @@
-// assets/style/main.less
+// /assets/style/main.less - v1.0.22
 
 // Variáveis de cores
 @full__primary_color__light: rgba(215, 215, 215,1);
@@ -42,11 +42,13 @@
 iframe {
   border: 0;
   width: 100%;
+  height: 100%; /* Garante que o iframe preencha o content */
 }
 
 body {
   margin: 0;
   padding: 0;
+  overflow: hidden; /* Evita scrollbars indesejadas no body principal */
 }
 
 /* width */
@@ -92,13 +94,16 @@ body {
   }
 }
 
-#desktop {
+#desktop { /* Mantido como #desktop */
   width: 100vw;
   height: 100vh;
   background-position: 50% 40%;
-  background-size: 100vw;
+  background-size: cover; 
   position: fixed;
   background-color: @full__secondary_color__dark;
+  top: 0;
+  left: 0;
+  overflow: hidden; 
 }
 
 .menu_apps {
@@ -108,11 +113,14 @@ body {
   width: 20vw;
   position: fixed;
   bottom: 50px;
+  left: 0px; 
   display: none;
   z-index: 1000;
-  // -------- APLICANDO BLUR AQUI --------
   backdrop-filter: blur(@blur-intensity);
   -webkit-backdrop-filter: blur(@blur-intensity);
+  border-top-right-radius: 8px; 
+  box-shadow: 2px 2px 5px @shadow; 
+  padding: 10px 0; 
 
   &.show {
     display: block;
@@ -123,9 +131,11 @@ body {
     align-items: center;
     height: 45px;
     padding: 0 20px;
+    color: @full__primary_color__light; 
+    transition: background-color 0.2s ease; 
 
     &:hover {
-      background-color: @middle__primary_color__dark;
+      background-color: @hight__primary_color__dark; 
       cursor: pointer;
     }
 
@@ -133,12 +143,13 @@ body {
       width: 30px;
       height: 30px;
       padding: 5px;
+      margin-right: 10px; 
     }
 
     &__name {
       width: 100%;
       padding: 5px;
-      color: @full__primary_color__light;
+      font-size: 1.1em;
     }
   }
 }
@@ -149,14 +160,12 @@ body {
   height: 50px;
   width: 100%;
   background-color: @full__primary_color__dark;
-  box-shadow: 0 1px 3px @shadow;
+  box-shadow: 0 -2px 5px @shadow; 
   display: flex;
   justify-content: flex-start;
   align-items: center;
-  padding-right: 5px;
-  padding-left: 5px;
+  padding: 0 5px;
   z-index: 1000;
-  // -------- APLICANDO BLUR AQUI --------
   backdrop-filter: blur(@blur-intensity);
   -webkit-backdrop-filter: blur(@blur-intensity);
 
@@ -166,6 +175,7 @@ body {
     display: flex;
     align-items: center;
     justify-content: center;
+    transition: background-color 0.2s ease;
 
     &:hover {
       background-color: @full__secondary_color__dark;
@@ -179,24 +189,37 @@ body {
 
   &__apps_on {
     display: flex;
+    flex-grow: 1; 
+    justify-content: flex-start; 
+    padding-left: 10px; 
 
-    &__app_icon {
+    &__app_icon { /* Este é o div que contém a imagem do ícone na taskbar */
       height: 50px;
       width: 50px;
       display: flex;
       align-items: center;
       justify-content: center;
+      transition: background-color 0.2s ease, opacity 0.2s ease, filter 0.2s ease; 
+      border-bottom: 2px solid transparent; 
+      cursor: pointer; 
+      margin: 0 5px; 
+      border-radius: 4px; 
 
       &.active {
         background-color: @full__tertiary_color__dark;
+        border-bottom-color: @full__secondary_color__light; 
+      }
+      &.minimized {
+        opacity: 0.5; 
+        filter: grayscale(70%); 
       }
 
       &:hover {
         background-color: @full__secondary_color__dark;
       }
 
-      &__img {
-        width: 30px;
+      &__img { /* A imagem dentro do div .tool_bar__apps_on__app_icon */
+        width: 30px; 
         height: 30px;
       }
     }
@@ -204,265 +227,164 @@ body {
 }
 
 .app {
-  width: 40vw;
-  height: 40vh;
   position: absolute;
-  top: 20vh;
-  left: 20vw;
   background-color: @middle_up__primary_color__dark;
-  box-shadow: 0 1px 3px @shadow;
-  z-index: 0; // Isso será sobrescrito pelo JS
-  opacity: 0.8; // Para janelas não ativas (opcional)
-  // -------- APLICANDO BLUR AQUI --------
+  box-shadow: 0 4px 10px @shadow; 
+  border-radius: 8px; 
+  overflow: hidden; 
+  z-index: 0; 
+  opacity: 0.9; 
   backdrop-filter: blur(@blur-intensity);
   -webkit-backdrop-filter: blur(@blur-intensity);
+  /* Removidas as transições explícitas para top, left, width, height para evitar travamentos */
+  /* user-select: none; removido daqui, confiando no e.preventDefault() */
+
+  &.no-transition { /* Mantido, mas não será ativado pelo JS por enquanto */
+    transition: none !important; 
+  }
 
   &.active-app {
     opacity: 1;
     border: 1px solid @full__secondary_color__light;
-    // z-index é controlado pelo JS
+  }
+
+  &.minimized {
+    display: none; 
+  }
+
+  &.maximized {
+    border-radius: 0; 
+    box-shadow: none; 
+    transition: none; /* Sem transição ao maximizar para ser instantâneo */
+  }
+
+  &__board_right, &__board_left, &__board_top, &__board_bottom,
+  &__board_top-left, &__board_top-right, &__board_bottom-left, &__board_bottom-right {
+    position: absolute;
+    z-index: 10;
   }
 
   &__board_right {
-    position: absolute;
-    //background: red;
-    width: 2px;
+    width: 5px; 
     height: 100%;
     right: 0;
-    z-index: 10;
     cursor: ew-resize;
   }
 
   &__board_left {
-    position: absolute;
-    //background: greenyellow;
-    width: 2px;
+    width: 5px;
     height: 100%;
     left: 0;
-    z-index: 10;
     cursor: ew-resize;
   }
 
   &__board_top {
     top: 0;
-    cursor: ns-resize;
-    position: absolute;
-    //background: yellow;
     width: 100%;
-    height: 2px;
-    z-index: 10;
-
+    height: 5px;
+    cursor: ns-resize;
   }
 
   &__board_bottom {
     bottom: 0;
-    cursor: ns-resize;
-    position: absolute;
-    //background: yellow;
     width: 100%;
-    height: 2px;
-    z-index: 10;
+    height: 5px;
+    cursor: ns-resize;
   }
 
+  /* Redimensionamento de canto */
+  &__board_top-left {
+    top: 0;
+    left: 0;
+    width: 15px; 
+    height: 15px;
+    cursor: nwse-resize;
+    z-index: 11; 
+  }
+  &__board_top-right {
+    top: 0;
+    right: 0;
+    width: 15px;
+    height: 15px;
+    cursor: nesw-resize;
+    z-index: 11;
+  }
+  &__board_bottom-left {
+    bottom: 0;
+    left: 0;
+    width: 15px;
+    height: 15px;
+    cursor: nesw-resize;
+    z-index: 11;
+  }
+  &__board_bottom-right {
+    bottom: 0;
+    right: 0;
+    width: 15px;
+    height: 15px;
+    cursor: nwse-resize;
+    z-index: 11;
+  }
+
+
   &__top_bar {
-    height: 20px;
+    height: 30px; 
     background-color: @full__primary_color__dark;
     width: 100%;
     display: flex;
     align-items: center;
     justify-content: flex-end;
-    position: absolute;
+    position: relative; 
+    cursor: grab; /* Cursor de arrastar na barra de título inteira */
 
     &__app_name {
       width: 100%;
       height: 100%;
       color: @full__primary_color__light;
-      font-size: 10pt;
+      font-size: 11pt; 
       display: flex;
       align-items: center;
       padding: 0px 10px;
+      flex-grow: 1; 
+    }
+
+    &__close_button, &__min_button, &__max_button {
+      width: 15px; 
+      height: 15px;
+      border-radius: 50%; 
+      margin-right: 8px; 
+      cursor: pointer;
+      transition: background-color 0.2s ease; 
+      /* Garantir que não haja distorção por flexbox */
+      flex-shrink: 0;
+      flex-grow: 0;
+      /* Reafirmar o tamanho exato */
+      min-width: 15px;
+      min-height: 15px;
     }
 
     &__close_button {
-      width: 12px;
-      height: 12px;
-      background-color: @full__secondary_color__light;
-      border-radius: 10px;
-      margin-right: 5px;
-      cursor: pointer; // Adicionado cursor para indicar clicável
+      background-color: #ff5f56; 
     }
 
     &__min_button {
-      width: 12px;
-      height: 12px;
-      background-color: @full__primary_color__light;
-      border-radius: 10px;
-      margin-right: 5px;
-      cursor: pointer; // Adicionado cursor
+      background-color: #ffbd2e; 
     }
 
     &__max_button {
-      width: 12px;
-      height: 12px;
-      background-color: @full__tertiary_color__light;
-      border-radius: 10px;
-      margin-right: 5px;
-      cursor: pointer; // Adicionado cursor
+      background-color: #27c93f; 
     }
   }
 
   &__content {
     display: flex;
     width: 100%;
-    height: 100%;
-    padding-top: 20px;
-
-    html {
-      width: 100%;
-      height: 100%;
-    }
-
-    body {
-      width: 100%;
-      height: 100%;
-    }
+    height: calc(100% - 30px); 
+    padding-top: 0; 
+    background-color: @full__secondary_color__dark; 
   }
 }
 
-.code {
-  display: flex;
-  width: 100%;
-  height: 100%;
-
-  .code__explore {
-    width: 25%;
-    background-color: @middle__primary_color__dark;
-    overflow-y: auto;
-    overflow-x: hidden;
-
-    &__item {
-      display: none;
-      width: 100%;
-      margin: 0;
-      padding: 0;
-
-      div {
-        padding: 10px 20px;
-        width: 100%;
-        cursor: pointer;
-      }
-
-      &.selected {
-        background-color: @full__tertiary_color__light;
-      }
-
-      &:hover {
-        background-color: @middle__primary_color__dark;
-        &.selected {
-          background-color: @full__secondary_color__light;
-        }
-      }
-
-      &.visible {
-        display: block;
-      }
-
-      &__icon {
-        display: flex;
-        align-items: center;
-
-        &:before {
-          font-family: "Font-Awesome-5-Free-Solid-900";
-          content: "\f15b";
-          font-size: 20px;
-          width: 25px;
-          height: 25px;
-          margin: 0 5px;
-        }
-
-        &.folder:before {
-          content: "\f07b";
-        }
-        &.open_folder:before {
-          content: "\f07c";
-        }
-
-        &.html:before,&.json:before {
-          content: "\f1c9";
-        }
-
-        &.svg:before,&.eps:before {
-          content: "\f55b";
-        }
-
-        &.ai:before,&.psd:before {
-          font-family: "Font-Awesome-5-Brands-Regular-400";
-          content: "\f778";
-        }
-
-        &.png:before,&.jpg:before,&.jpeg:before,&.gif:before {
-          content: "\f1c5";
-        }
-
-        &.js:before {
-          font-family: "Font-Awesome-5-Brands-Regular-400";
-          content: "\f3b8";
-        }
-
-        &.less:before {
-          font-family: "Font-Awesome-5-Brands-Regular-400";
-          content: "\f41d";
-        }
-
-        &.css:before {
-          font-family: "Font-Awesome-5-Brands-Regular-400";
-          content: "\f13c";
-        }
-
-      }
-    }
-
-    &__folder {
-      color: @full__secondary_color__light;
-      list-style-type: none;
-      list-style: none;
-      display: none;
-    }
-
-    &__file {
-      color: @full__primary_color__light;
-      display: none;
-      list-style-type: none;
-      list-style: none;
-    }
-  }
-
-  .code__workarea {
-    width: 75%;
-    overflow-y: auto;
-    overflow-x: auto;
-    color: @full__primary_color__light;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-
-    &__content {
-      width: 100%;
-      height: 100%;
-      padding: 10px;
-      display: flex;
-      align-items: center;
-      justify-content: center;
-
-      &__code {
-        width: 100%;
-        height: 100%;
-      }
-    }
-
-    &__img {
-      width: 100%;
-      height: auto;
-    }
-  }
+.custom-ui-app {
+    /* Já tem w-full, h-full, absolute, top-0, left-0, z-10 */
 }

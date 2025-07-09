@@ -1,4 +1,4 @@
-// apps/terminal/main.js
+// apps/terminal/main.js - v1.0.21
 
 // Importe a classe BaseApp
 import { BaseApp } from '../../core/BaseApp.js'; // Ajuste o caminho conforme a sua estrutura de pastas
@@ -13,30 +13,133 @@ export default class TerminalApp extends BaseApp {
         super(appCoreInstance, standardAPIs); // Chama o construtor da classe base
 
         // Referências aos elementos DOM do terminal
-        this.terminalAppElement = null;
-        this.terminalOutput = null; // Agora é o principal contêiner rolável
-        this.terminalInput = null;
+        this.terminalAppElement = null; // O elemento div#terminal-app com o ID da instância
+        this.terminalOutputElement = null; // Agora é o principal contêiner rolável
+        this.inputElement = null;
         this.terminalInputLine = null;
         this.terminalPromptElement = null;
 
         this.commandHistory = [];
         this.historyIndex = -1;
+        this.commands = {}; // Inicializa o objeto de comandos da instância
 
-        // Explicitly bind methods to ensure 'this' context
-        this.appendToTerminal = this.appendToTerminal.bind(this);
-        this.displayInitialMessages = this.displayInitialMessages.bind(this);
-        this.handleKeydown = this.handleKeydown.bind(this);
-        this.scrollToBottom = this.scrollToBottom.bind(this); // Bind também o scroll
+        // Explicitamente bind methods to ensure 'this' context
+        // Bind apenas os métodos que serão passados como callbacks para listeners de evento ou outras funções
+        this.writeLine = this.writeLine.bind(this);
+        this.clearTerminal = this.clearTerminal.bind(this); // Usado em comandos
+        this.processCommand = this.processCommand.bind(this); // Usado em handleKeydown
+        this.handleKeydown = this.handleKeydown.bind(this); // Usado em addEventListener
+        this.scrollToBottom = this.scrollToBottom.bind(this); // Usado internamente
+    }
+
+    /**
+     * Registra um comando no terminal.
+     * @param {string} name - Nome do comando.
+     * @param {function} func - Função a ser executada pelo comando.
+     * @param {string} description - Descrição do comando.
+     */
+    registerCommand(name, func, description = 'Sem descrição.') {
+        this.commands[name] = { func, description };
+    }
+
+    /**
+     * Escreve uma linha no terminal.
+     * @param {string} text - O texto a ser escrito.
+     * @param {string} [type='output'] - Tipo de mensagem ('output', 'error', 'system').
+     */
+    writeLine(text, type = 'output') {
+        if (this.terminalOutputElement) {
+            const line = document.createElement('div');
+            line.classList.add('terminal-line', `terminal-line--${type}`);
+            line.innerHTML = text; // Usar innerHTML para permitir tags HTML no texto
+            this.terminalOutputElement.appendChild(line);
+            // Rola para a última linha
+            this.scrollToBottom();
+        } else {
+            console.warn(`[${this.appName} - ${this.instanceId}] Terminal output element not found. Text: ${text}`);
+        }
+    }
+
+    /**
+     * Rola o terminal para o final.
+     */
+    scrollToBottom() {
+        if (this.terminalOutputElement) {
+            this.terminalOutputElement.scrollTop = this.terminalOutputElement.scrollHeight;
+        }
+    }
+
+    /**
+     * Limpa o conteúdo do terminal.
+     */
+    clearTerminal() {
+        if (this.terminalOutputElement) {
+            this.terminalOutputElement.innerHTML = '';
+        }
+    }
+
+    /**
+     * Processa um comando digitado no terminal.
+     * @param {string} commandLine - A linha de comando digitada.
+     */
+    async processCommand(commandLine) {
+        if (!commandLine.trim()) return;
+
+        this.writeLine(`<span class="terminal-prompt">user@reversodoavesso:~$</span> ${commandLine}`, 'input');
+        this.commandHistory.unshift(commandLine); // Adiciona ao início do histórico
+        this.historyIndex = -1; // Reseta o índice do histórico
+
+        const parts = commandLine.trim().split(/\s+/);
+        const commandName = parts[0].toLowerCase();
+        const args = parts.slice(1);
+
+        if (this.commands[commandName]) {
+            try {
+                // Passa o writeLine pré-vinculado para os comandos, e o appManager da BaseApp
+                // O último argumento é a instância do AppManager (this.appManager)
+                const result = await this.commands[commandName].func(
+                    args,
+                    this.writeLine, // appendToTerminal
+                    this.terminalOutputElement, // terminalOutput (para comandos como 'clear')
+                    null, // displayInitialMessages (não é mais usado diretamente pelos comandos)
+                    this.commands, // allCommands (para o comando help)
+                    this.appManager // appManager (para comandos como 'ps', 'start', 'stop')
+                );
+                if (result) {
+                    this.writeLine(result);
+                }
+            } catch (error) {
+                this.writeLine(`Erro ao executar '${commandName}': ${error.message}`, 'error');
+                console.error(`Erro no comando '${commandName}':`, error);
+            }
+        } else {
+            this.writeLine(`<span class="red">Comando '${commandName}' não encontrado. Digite 'help' para ver os comandos.</span>`, 'error');
+        }
+    }
+
+    /**
+     * Inicializa os comandos do terminal a partir do objeto 'commands' importado.
+     */
+    initializeCommands() {
+        this.commands = {}; // Reinicializa para garantir que não há comandos antigos
+
+        // Loop através dos comandos importados e registra-os
+        for (const cmdName in commands) {
+            if (commands.hasOwnProperty(cmdName)) {
+                this.registerCommand(cmdName, commands[cmdName].action, commands[cmdName].description);
+            }
+        }
+        console.log(`[${this.appName} - ${this.instanceId}] Comandos inicializados:`, Object.keys(this.commands));
     }
 
     /**
      * Método chamado quando o aplicativo é executado.
-     * Contém a lógica principal de inicialização do terminal.
-     * Este método agora é chamado pelo AppWindowSystem APÓS o DOM estar pronto.
+     * Assume que o HTML já foi injetado no appElement pelo AppWindowSystem.
      */
     onRun() {
         console.log(`[${this.appName} - ${this.instanceId}] TerminalApp.onRun() started. DOM should be ready.`);
 
+        // Agora, o elemento raiz do terminal é o próprio appElement, que tem o ID da instância
         this.terminalAppElement = document.getElementById(this.instanceId);
 
         if (!this.terminalAppElement) {
@@ -44,61 +147,30 @@ export default class TerminalApp extends BaseApp {
             return;
         }
 
-        this.terminalOutput = this.terminalAppElement.querySelector("#terminalOutput");
-        this.terminalInput = this.terminalAppElement.querySelector("#terminalInput");
-        this.terminalInputLine = this.terminalAppElement.querySelector(".terminal-input-line");
-        this.terminalPromptElement = this.terminalAppElement.querySelector(".terminal-prompt");
+        // Acessa os elementos internos do terminal a partir de this.terminalAppElement
+        this.terminalOutputElement = this.terminalAppElement.querySelector('#terminalOutput');
+        this.inputElement = this.terminalAppElement.querySelector('#terminalInput');
+        this.terminalInputLine = this.terminalAppElement.querySelector('.terminal-input-line');
+        this.terminalPromptElement = this.terminalAppElement.querySelector('.terminal-prompt');
 
-        if (!this.terminalOutput || !this.terminalInput || !this.terminalInputLine || !this.terminalPromptElement) {
+        if (!this.terminalOutputElement || !this.inputElement || !this.terminalInputLine || !this.terminalPromptElement) {
             console.error(`[${this.appName} - ${this.instanceId}] Erro: Um ou mais elementos do terminal (output, input, input-line, prompt) não foram encontrados!`);
             return;
         }
 
-        this.terminalInput.addEventListener('keydown', this.handleKeydown);
+        this.initializeCommands(); // Popula this.commands
 
-        this.displayInitialMessages();
-        this.terminalInput.focus(); // Foca o input na inicialização
+        this.inputElement.addEventListener('keydown', this.handleKeydown);
+
+        this.writeLine('Bem-vindo ao Terminal OS! Digite "help" para começar.');
+        this.inputElement.focus(); // Foca o input na inicialização
         this.scrollToBottom(); // Garante que o terminal esteja no final
-    }
 
-    /**
-     * Rola o terminal para o final.
-     */
-    scrollToBottom() {
-        if (this.terminalOutput) {
-            this.terminalOutput.scrollTop = this.terminalOutput.scrollHeight;
-        }
-    }
-
-    /**
-     * Método para adicionar texto ao terminal.
-     * Insere novas linhas no final do terminalOutput.
-     * @param {string} text - O texto HTML a ser adicionado.
-     */
-    appendToTerminal(text) {
-        if (!this.terminalOutput) {
-            console.error(`[${this.appName} - ${this.instanceId}] Erro: terminalOutput não está disponível para appendToTerminal.`);
-            return;
-        }
-        const lineElement = document.createElement('span');
-        lineElement.innerHTML = text;
-        this.terminalOutput.appendChild(lineElement);
-        this.scrollToBottom();
-    }
-
-    /**
-     * Exibe as mensagens iniciais no terminal.
-     */
-    displayInitialMessages() {
-        const messages = [
-            '<span class="green">Bem-vindo a reversodoavesso.online</span>',
-            '<span class="yellow">Iniciando conexão segura...</span>',
-            '<span class="blue">Pronto para comandos.</span>',
-            '<span class="yellow">Digite \'help\' para ver os comandos disponíveis.</span>',
-            ''
-        ];
-        messages.forEach(msg => {
-            this.appendToTerminal(msg);
+        // Adiciona um listener de clique ao elemento da janela para refocar o input
+        // Isso é importante para que o usuário possa clicar em qualquer lugar da janela do terminal
+        // e o foco volte para o input.
+        this.appCore.appElement.addEventListener('click', () => {
+            this.inputElement.focus();
         });
     }
 
@@ -108,62 +180,42 @@ export default class TerminalApp extends BaseApp {
      */
     handleKeydown(event) {
         if (event.key === 'Enter') {
-            const commandLine = this.terminalInput.value.trim();
-            this.appendToTerminal(`<span class="terminal-prompt">user@reversodoavesso:~$</span> ${commandLine}`);
-            this.terminalInput.value = '';
-
-            if (commandLine) {
-                this.commandHistory.push(commandLine);
-                this.historyIndex = this.commandHistory.length;
-            }
-
-            const parts = commandLine.split(' ');
-            const command = parts[0].toLowerCase();
-            const args = parts.slice(1);
-
-            if (commands[command]) {
-                const result = commands[command].action(
-                    args,
-                    this.appendToTerminal,
-                    this.terminalOutput,
-                    this.displayInitialMessages,
-                    commands,
-                    this.appManager
-                );
-                if (result) {
-                    this.appendToTerminal(result);
-                }
-            } else if (commandLine) {
-                this.appendToTerminal(`<span class="red">Comando '${command}' não encontrado. Digite 'help' para ver os comandos.</span>`);
-            }
-            this.terminalInput.focus();
-            this.scrollToBottom();
+            const command = this.inputElement.value;
+            this.inputElement.value = '';
+            this.processCommand(command);
         } else if (event.key === 'ArrowUp') {
-            event.preventDefault();
-            if (this.historyIndex > 0) {
-                this.historyIndex--;
-                this.terminalInput.value = this.commandHistory[this.historyIndex];
+            event.preventDefault(); // Previne o movimento do cursor no input
+            if (this.commandHistory.length > 0) {
+                this.historyIndex = (this.historyIndex + 1) % this.commandHistory.length;
+                this.inputElement.value = this.commandHistory[this.historyIndex];
             }
         } else if (event.key === 'ArrowDown') {
-            event.preventDefault();
-            if (this.historyIndex < this.commandHistory.length) {
-                this.historyIndex++;
-                if (this.historyIndex < this.commandHistory.length) {
-                    this.terminalInput.value = this.commandHistory[this.historyIndex];
+            event.preventDefault(); // Previne o movimento do cursor no input
+            if (this.commandHistory.length > 0) {
+                this.historyIndex--;
+                if (this.historyIndex < 0) {
+                    this.historyIndex = -1; // Volta para o input vazio
+                    this.inputElement.value = '';
                 } else {
-                    this.terminalInput.value = '';
+                    this.inputElement.value = this.commandHistory[this.historyIndex];
                 }
             }
         }
     }
 
-    /**
-     * Método chamado quando o aplicativo é encerrado.
-     * Use para qualquer lógica de limpeza específica do aplicativo.
-     */
     onCleanup() {
-        if (this.terminalInput) {
-            this.terminalInput.removeEventListener('keydown', this.handleKeydown);
+        console.log(`[${this.appName} - ${this.instanceId}] Método onCleanup() do TerminalApp executado.`);
+        if (this.inputElement) {
+            this.inputElement.removeEventListener('keydown', this.handleKeydown);
         }
+        // Limpar referências DOM para evitar vazamentos de memória
+        this.terminalAppElement = null;
+        this.terminalOutputElement = null;
+        this.inputElement = null;
+        this.terminalInputLine = null;
+        this.terminalPromptElement = null;
+        this.commandHistory = [];
+        this.historyIndex = -1;
+        this.commands = {}; // Limpar comandos também
     }
 }

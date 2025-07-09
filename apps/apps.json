@@ -68,8 +68,7 @@
       "x_position": "30vw",
       "y_position": "20vh",
       "dirApp": "/apps/simple_test_app/index.html",
-      "jsFile": "/apps/simple_test_app/main.js",
-      "icon_url": "/assets/icons/apps/test_app.svg",
+      "jsFile": "/apps/simple_test_app/main.js",  
       "hidden": false,
       "mode": "system_window"
     }
