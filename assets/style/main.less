@@ -1,0 +1,468 @@
+// assets/style/main.less
+
+// Variáveis de cores
+@full__primary_color__light: rgba(215, 215, 215,1);
+@full__secondary_color__light: rgba(180, 180, 180,1);
+@full__tertiary_color__light: rgba(150, 150, 150,1);
+
+@full__primary_color__dark: rgba(43, 43, 43, 1);
+@hight__primary_color__dark: rgba(43, 43, 43, 0.8);
+@middle_up__primary_color__dark: rgba(43, 43, 43, 0.65);
+@middle__primary_color__dark: rgba(43, 43, 43, 0.5);
+
+@full__secondary_color__dark: rgba(25,25,25,1);
+@full__tertiary_color__dark: rgba(34,34,34,1);
+
+@shadow: rgba(0, 0, 0, 0.2);
+
+// -------- NOVA VARIÁVEL PARA O BLUR --------
+@blur-intensity: 5px; // Defina a intensidade do desfoque aqui (ex: 5px, 10px, etc.)
+
+// Font faces
+@font-face {
+  font-family: "Font-Awesome-5-Free-Regular-400";
+  src: url("../fonts/Font-Awesome-5-Free-Regular-400.otf");
+}
+
+@font-face {
+  font-family: "Font-Awesome-5-Free-Solid-900";
+  src: url("../fonts/Font-Awesome-5-Free-Solid-900.otf");
+}
+
+@font-face {
+  font-family: "Font-Awesome-5-Brands-Regular-400";
+  src: url("../fonts/Font-Awesome-5-Brands-Regular-400.otf");
+}
+
+* {
+  box-sizing: border-box;
+  font-family: "Roboto", sans-serif;
+}
+
+iframe {
+  border: 0;
+  width: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+}
+
+/* width */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+
+/* Track */
+::-webkit-scrollbar-track {
+  background: @middle__primary_color__dark;
+}
+
+/* Handle */
+::-webkit-scrollbar-thumb {
+  background: @full__tertiary_color__light;
+}
+
+/* Handle on hover */
+::-webkit-scrollbar-thumb:hover {
+  background: @full__secondary_color__light;
+}
+
+::-webkit-scrollbar-corner {
+  background: @hight__primary_color__dark;
+}
+
+.button {
+  text-decoration: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+
+  &.large {
+    width: 15vw;
+    height: 40px;
+  }
+
+  &.light{
+    background-color: @full__primary_color__light;
+    color: @full__primary_color__dark;
+  }
+}
+
+#desktop {
+  width: 100vw;
+  height: 100vh;
+  background-position: 50% 40%;
+  background-size: 100vw;
+  position: fixed;
+  background-color: @full__secondary_color__dark;
+}
+
+.menu_apps {
+  background-color: @middle__primary_color__dark;
+  min-height: 35vh;
+  height: auto;
+  width: 20vw;
+  position: fixed;
+  bottom: 50px;
+  display: none;
+  z-index: 1000;
+  // -------- APLICANDO BLUR AQUI --------
+  backdrop-filter: blur(@blur-intensity);
+  -webkit-backdrop-filter: blur(@blur-intensity);
+
+  &.show {
+    display: block;
+  }
+
+  &__app {
+    display: flex;
+    align-items: center;
+    height: 45px;
+    padding: 0 20px;
+
+    &:hover {
+      background-color: @middle__primary_color__dark;
+      cursor: pointer;
+    }
+
+    &__icon {
+      width: 30px;
+      height: 30px;
+      padding: 5px;
+    }
+
+    &__name {
+      width: 100%;
+      padding: 5px;
+      color: @full__primary_color__light;
+    }
+  }
+}
+
+.tool_bar {
+  position: fixed;
+  bottom: 0px;
+  height: 50px;
+  width: 100%;
+  background-color: @full__primary_color__dark;
+  box-shadow: 0 1px 3px @shadow;
+  display: flex;
+  justify-content: flex-start;
+  align-items: center;
+  padding-right: 5px;
+  padding-left: 5px;
+  z-index: 1000;
+  // -------- APLICANDO BLUR AQUI --------
+  backdrop-filter: blur(@blur-intensity);
+  -webkit-backdrop-filter: blur(@blur-intensity);
+
+  &__start_menu {
+    height: 50px;
+    width: 50px;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &:hover {
+      background-color: @full__secondary_color__dark;
+    }
+
+    &__icon {
+      width: 25px;
+      height: 25px;
+    }
+  }
+
+  &__apps_on {
+    display: flex;
+
+    &__app_icon {
+      height: 50px;
+      width: 50px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &.active {
+        background-color: @full__tertiary_color__dark;
+      }
+
+      &:hover {
+        background-color: @full__secondary_color__dark;
+      }
+
+      &__img {
+        width: 30px;
+        height: 30px;
+      }
+    }
+  }
+}
+
+.app {
+  width: 40vw;
+  height: 40vh;
+  position: absolute;
+  top: 20vh;
+  left: 20vw;
+  background-color: @middle_up__primary_color__dark;
+  box-shadow: 0 1px 3px @shadow;
+  z-index: 0; // Isso será sobrescrito pelo JS
+  opacity: 0.8; // Para janelas não ativas (opcional)
+  // -------- APLICANDO BLUR AQUI --------
+  backdrop-filter: blur(@blur-intensity);
+  -webkit-backdrop-filter: blur(@blur-intensity);
+
+  &.active-app {
+    opacity: 1;
+    border: 1px solid @full__secondary_color__light;
+    // z-index é controlado pelo JS
+  }
+
+  &__board_right {
+    position: absolute;
+    //background: red;
+    width: 2px;
+    height: 100%;
+    right: 0;
+    z-index: 10;
+    cursor: ew-resize;
+  }
+
+  &__board_left {
+    position: absolute;
+    //background: greenyellow;
+    width: 2px;
+    height: 100%;
+    left: 0;
+    z-index: 10;
+    cursor: ew-resize;
+  }
+
+  &__board_top {
+    top: 0;
+    cursor: ns-resize;
+    position: absolute;
+    //background: yellow;
+    width: 100%;
+    height: 2px;
+    z-index: 10;
+
+  }
+
+  &__board_bottom {
+    bottom: 0;
+    cursor: ns-resize;
+    position: absolute;
+    //background: yellow;
+    width: 100%;
+    height: 2px;
+    z-index: 10;
+  }
+
+  &__top_bar {
+    height: 20px;
+    background-color: @full__primary_color__dark;
+    width: 100%;
+    display: flex;
+    align-items: center;
+    justify-content: flex-end;
+    position: absolute;
+
+    &__app_name {
+      width: 100%;
+      height: 100%;
+      color: @full__primary_color__light;
+      font-size: 10pt;
+      display: flex;
+      align-items: center;
+      padding: 0px 10px;
+    }
+
+    &__close_button {
+      width: 12px;
+      height: 12px;
+      background-color: @full__secondary_color__light;
+      border-radius: 10px;
+      margin-right: 5px;
+      cursor: pointer; // Adicionado cursor para indicar clicável
+    }
+
+    &__min_button {
+      width: 12px;
+      height: 12px;
+      background-color: @full__primary_color__light;
+      border-radius: 10px;
+      margin-right: 5px;
+      cursor: pointer; // Adicionado cursor
+    }
+
+    &__max_button {
+      width: 12px;
+      height: 12px;
+      background-color: @full__tertiary_color__light;
+      border-radius: 10px;
+      margin-right: 5px;
+      cursor: pointer; // Adicionado cursor
+    }
+  }
+
+  &__content {
+    display: flex;
+    width: 100%;
+    height: 100%;
+    padding-top: 20px;
+
+    html {
+      width: 100%;
+      height: 100%;
+    }
+
+    body {
+      width: 100%;
+      height: 100%;
+    }
+  }
+}
+
+.code {
+  display: flex;
+  width: 100%;
+  height: 100%;
+
+  .code__explore {
+    width: 25%;
+    background-color: @middle__primary_color__dark;
+    overflow-y: auto;
+    overflow-x: hidden;
+
+    &__item {
+      display: none;
+      width: 100%;
+      margin: 0;
+      padding: 0;
+
+      div {
+        padding: 10px 20px;
+        width: 100%;
+        cursor: pointer;
+      }
+
+      &.selected {
+        background-color: @full__tertiary_color__light;
+      }
+
+      &:hover {
+        background-color: @middle__primary_color__dark;
+        &.selected {
+          background-color: @full__secondary_color__light;
+        }
+      }
+
+      &.visible {
+        display: block;
+      }
+
+      &__icon {
+        display: flex;
+        align-items: center;
+
+        &:before {
+          font-family: "Font-Awesome-5-Free-Solid-900";
+          content: "\f15b";
+          font-size: 20px;
+          width: 25px;
+          height: 25px;
+          margin: 0 5px;
+        }
+
+        &.folder:before {
+          content: "\f07b";
+        }
+        &.open_folder:before {
+          content: "\f07c";
+        }
+
+        &.html:before,&.json:before {
+          content: "\f1c9";
+        }
+
+        &.svg:before,&.eps:before {
+          content: "\f55b";
+        }
+
+        &.ai:before,&.psd:before {
+          font-family: "Font-Awesome-5-Brands-Regular-400";
+          content: "\f778";
+        }
+
+        &.png:before,&.jpg:before,&.jpeg:before,&.gif:before {
+          content: "\f1c5";
+        }
+
+        &.js:before {
+          font-family: "Font-Awesome-5-Brands-Regular-400";
+          content: "\f3b8";
+        }
+
+        &.less:before {
+          font-family: "Font-Awesome-5-Brands-Regular-400";
+          content: "\f41d";
+        }
+
+        &.css:before {
+          font-family: "Font-Awesome-5-Brands-Regular-400";
+          content: "\f13c";
+        }
+
+      }
+    }
+
+    &__folder {
+      color: @full__secondary_color__light;
+      list-style-type: none;
+      list-style: none;
+      display: none;
+    }
+
+    &__file {
+      color: @full__primary_color__light;
+      display: none;
+      list-style-type: none;
+      list-style: none;
+    }
+  }
+
+  .code__workarea {
+    width: 75%;
+    overflow-y: auto;
+    overflow-x: auto;
+    color: @full__primary_color__light;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+
+    &__content {
+      width: 100%;
+      height: 100%;
+      padding: 10px;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+
+      &__code {
+        width: 100%;
+        height: 100%;
+      }
+    }
+
+    &__img {
+      width: 100%;
+      height: auto;
+    }
+  }
+}

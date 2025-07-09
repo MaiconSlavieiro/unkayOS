@@ -1,0 +1,113 @@
+<div id="snake-game-app" class="snake-game-app">
+    <style>
+        /*
+ * Estilos para o jogo da cobrinha, adaptados para um sistema operacional em browser.
+ * Foco em elementos internos para uma interface "clean" e transparente.
+ * NENHUM background-color para .snake-game-app ou .snake-game-container,
+ * permitindo que o sistema externo gerencie o fundo da "janela".
+ */
+
+.snake-game-app {
+    font-family: 'Fira Mono', monospace;
+    color: #eee; /* Cor do texto geral */
+    display: flex;
+    flex-direction: column;
+    justify-content: center; /* Centraliza verticalmente o container do jogo */
+    align-items: center;    /* Centraliza horizontalmente o container do jogo */
+    width: 100%; /* Ocupa a largura total do contêiner pai */
+    height: 100%; /* Ocupa a altura total do contêiner pai */
+    box-sizing: border-box;
+    padding: 10px; /* Padding interno para a área do app */
+    user-select: none; /* Impede seleção de texto no jogo */
+    /* Removido background-color */
+}
+
+.snake-game-container {
+    text-align: center;
+    padding: 15px; /* Padding interno para o conteúdo do container */
+    border-radius: 8px;
+    box-shadow: 0 4px 15px rgba(0, 0, 0, 0.3); /* Sombra suave para destacar, ajustada para ser mais sutil */
+    /* Background removido para ser transparente. A janela externa definirá o fundo. */
+    display: flex; /* Adicionado para organizar os elementos internos */
+    flex-direction: column; /* Coloca os elementos um abaixo do outro */
+    align-items: center; /* Centraliza os itens horizontalmente */
+    /* Permite que o container cresça ou diminua, mas o canvas ajustará o tamanho */
+    max-width: 100%; /* Garante que não exceda a largura do pai */
+    max-height: 100%; /* Garante que não exceda a altura do pai */
+}
+
+.snake-game-container h2 {
+    color: #f1fa8c; /* Amarelo claro para o título */
+    margin-bottom: 10px;
+}
+
+.snake-game-container #score {
+    font-size: 1.2em;
+    color: #50fa7b; /* Verde para a pontuação */
+    margin-bottom: 15px;
+}
+
+#gameCanvas {
+    background-color: #1a1c22; /* Cor do tabuleiro do jogo (essencial para o visual do jogo) */
+    border: 2px solid #6272a4; /* Borda do tabuleiro */
+    display: block; /* Remove espaçamento abaixo do canvas */
+    margin: 0 auto; /* Centraliza o canvas */
+    /* As dimensões do canvas serão definidas via JavaScript para flexibilidade */
+    max-width: 100%; /* Garante que não exceda a largura do pai */
+    max-height: 100%; /* Garante que não exceda a altura do pai */
+    object-fit: contain; /* Garante que o canvas se ajuste sem distorcer, se necessário */
+}
+
+.snake-game-controls {
+    margin-top: 15px;
+    display: flex;
+    justify-content: center;
+    gap: 10px; /* Espaçamento entre os botões */
+}
+
+.snake-game-controls button {
+    background-color: #6272a4; /* Roxo suave para os botões */
+    color: white;
+    border: none;
+    padding: 8px 15px;
+    border-radius: 5px;
+    cursor: pointer;
+    font-size: 0.9em;
+    transition: background-color 0.2s; /* Transição suave no hover */
+}
+
+.snake-game-controls button:hover {
+    background-color: #44475a; /* Roxo mais escuro no hover */
+}
+
+.snake-game-controls button:disabled {
+    background-color: #333;
+    cursor: not-allowed;
+    opacity: 0.7;
+}
+
+.snake-game-message {
+    margin-top: 15px;
+    font-size: 1.1em;
+    color: #ff5555; /* Vermelho para mensagens de game over */
+}
+
+/*
+ * Cores para a cobrinha e comida são definidas diretamente no JavaScript via fillStyle,
+ * mas estas classes podem ser úteis para referência ou se for necessário um SVG.
+ */
+/* .snake-head { fill: #50fa7b; } */
+/* .snake-body { fill: #8be9fd; } */
+/* .food { fill: #ff5555; } */
+    </style>
+    <div class="snake-game-container">
+        <h2>Jogo da Cobrinha</h2>
+        <div id="score">Pontuação: 0</div>
+        <canvas id="gameCanvas"></canvas>
+        <div class="snake-game-controls">
+            <button id="startButton">Iniciar Jogo</button>
+            <button id="resetButton">Reiniciar Jogo</button>
+        </div>
+        <div id="message" class="snake-game-message"></div>
+    </div>
+</div>

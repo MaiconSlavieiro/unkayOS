@@ -1,0 +1,134 @@
+<div id="terminal-app" class="terminal-app">
+    <div class="terminal-output" id="terminalOutput">
+        <!-- As saídas dos comandos aparecerão aqui. O JS inserirá novas linhas. -->
+    </div>
+    <!-- A linha de input permanece estática no final do terminal-app -->
+    <div class="terminal-input-line">
+        <span class="terminal-prompt">user@reversodoavesso:~$</span>
+        <input type="text" class="terminal-input" id="terminalInput" autofocus>
+    </div>
+</div>
+
+<style>
+    /*
+     * Estes estilos são APENAS para o CONTEÚDO do terminal.
+     * Eles não definem tamanho fixo, bordas, sombras ou fundo preto
+     * para a .terminal-app em si, permitindo que o sistema externo
+     * gerencie a "janela" e o posicionamento.
+     */
+
+    .terminal-app {
+        font-family: 'Fira Mono', monospace;
+        color: white;
+        box-sizing: border-box;
+        overflow: hidden; /* Controla o overflow geral do app */
+        display: flex;
+        flex-direction: column; /* Empilha o output e o input-line */
+        width: 100%;
+        height: 100%;
+        font-size: 0.8rem;
+        line-height: 1.5;
+        padding: 10px; /* Padding para todo o conteúdo do terminal */
+        border-radius: 4px; /* Opcional: bordas arredondadas para o terminal */
+    }
+
+    .terminal-output {
+        flex-grow: 1; /* Permite que o output ocupe o espaço disponível */
+        overflow-y: auto; /* A rolagem vertical acontece AQUI */
+        white-space: pre-wrap; /* Preserva espaços em branco e quebra linhas */
+        word-wrap: break-word; /* Quebra palavras longas se necessário */
+        /* Removido padding interno, pois o padding do .terminal-app já o cobre */
+    }
+
+    .terminal-output span,
+    .terminal-output div {
+        margin-bottom: 5px; /* Espaçamento entre linhas de saída */
+        display: block; /* Garante que cada span/div de saída ocupe sua própria linha */
+    }
+
+    .terminal-output br {
+        line-height: 0;
+        margin-bottom: 0;
+    }
+
+    /* Estilos para a barra de rolagem (WebKit) */
+    .terminal-output::-webkit-scrollbar {
+        width: 8px;
+    }
+
+    .terminal-output::-webkit-scrollbar-track {
+        background: #333;
+    }
+
+    .terminal-output::-webkit-scrollbar-thumb {
+        background-color: #555;
+        border-radius: 4px;
+        border: 2px solid #333;
+    }
+
+    /* A linha de input permanece estática no final do terminal-app */
+    .terminal-input-line {
+        display: flex;
+        align-items: center;
+        flex-shrink: 0; /* Impede que a linha de input encolha */
+        padding-top: 5px; /* Adiciona um pequeno espaçamento acima da linha de input */
+    }
+
+    .terminal-prompt {
+        color: #9ADF3A;
+        margin-right: 5px;
+        flex-shrink: 0;
+    }
+
+    .terminal-input {
+        background: none;
+        border: none;
+        color: white;
+        font-family: 'Fira Mono', monospace;
+        font-size: 1em;
+        flex-grow: 1;
+        outline: none;
+        caret-color: white;
+        animation: blink-caret .75s step-end infinite;
+    }
+
+    /* Animação para o cursor piscando */
+    @keyframes blink-caret {
+        from,
+        to {
+            border-right-color: transparent
+        }
+        50% {
+            border-right-color: white;
+        }
+    }
+
+    /* Cores semânticas usadas no terminal (como classes) */
+    .green {
+        color: #9ADF3A;
+    }
+
+    .yellow {
+        color: #FFDE38;
+    }
+
+    .red {
+        color: #FF575A;
+    }
+
+    .blue {
+        color: #98d7ff;
+    }
+
+    .purple {
+        color: #bd93f9;
+    }
+
+    .cyan {
+        color: #8be9fd;
+    }
+
+    .white {
+        color: #f8f8f2;
+    }
+</style>
