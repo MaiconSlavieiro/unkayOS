@@ -1,0 +1,64 @@
+/* apps/about/style.css - v1.0.1 */
+
+.about-app {
+    font-family: 'Inter', sans-serif;
+    color: var(--color-text-on-dark); /* Usando token para cor de texto clara */
+    background-color: var(--color-dark-primary); /* Usando token para fundo escuro */
+    display: flex;
+    flex-direction: column;
+    width: 100%;
+    height: 100%;
+    padding: var(--spacing-md); /* Usando token para padding */
+    box-sizing: border-box;
+    overflow: auto;
+}
+
+.about-header {
+    display: flex;
+    align-items: center;
+    margin-bottom: var(--spacing-md); /* Usando token para margin */
+    border-bottom: 1px solid var(--color-border-dark); /* Usando token para borda */
+    padding-bottom: var(--spacing-md); /* Usando token para padding */
+}
+
+.about-icon {
+    width: 48px;
+    height: 48px;
+    margin-right: var(--spacing-md); /* Usando token para margin */
+}
+
+.about-title {
+    font-size: 1.8em;
+    font-weight: 600;
+    color: var(--color-primary-base); /* Usando token para cor de destaque */
+}
+
+.about-content p {
+    margin-bottom: var(--spacing-sm); /* Usando token para margin */
+    font-size: 0.95em;
+}
+
+.about-content .label {
+    font-weight: 500;
+    color: var(--color-light-tertiary); /* Usando token para labels */
+    display: inline-block;
+    width: 120px;
+}
+
+.about-description {
+    margin-top: var(--spacing-md); /* Usando token para margin */
+    line-height: 1.6;
+    font-style: italic;
+    color: var(--color-light-secondary); /* Usando token para cor de descrição */
+    border-top: 1px solid var(--color-border-dark); /* Usando token para borda */
+    padding-top: var(--spacing-md); /* Usando token para padding */
+}
+
+.about-footer {
+    margin-top: auto;
+    padding-top: var(--spacing-md); /* Usando token para padding */
+    border-top: 1px solid var(--color-border-dark); /* Usando token para borda */
+    text-align: center;
+    font-size: 0.8em;
+    color: var(--color-light-tertiary); /* Usando token para cor do rodapé */
+}

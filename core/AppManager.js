@@ -1,22 +1,23 @@
-// /core/AppManager.js - v1.0.23
+// /core/AppManager.js - v1.0.25 (Atualizado para resolver icon_url)
 
 import { AppCore } from './AppCore.js';
+import { BaseApp } from './BaseApp.js'; // Importa BaseApp para a verificação de instância
 
 /**
  * Gerencia todas as instâncias de aplicativos em execução no sistema.
  * Responsável por iniciar, parar e manter o estado dos aplicativos.
  */
 export class AppManager {
-    constructor(desktopElement, appsOnToolBarElement, appConfigs) { 
-        this.desktopElement = desktopElement; 
-        this.appsOnToolBarElement = appsOnToolBarElement; 
+    constructor(desktopElement, appsOnToolBarElement, appConfigs) {
+        this.desktopElement = desktopElement;
+        this.appsOnToolBarElement = appsOnToolBarElement;
         this.baseAppConfigs = appConfigs; // Lista de {id, path} do apps.json
         this.loadedAppDetails = new Map(); // Map<appId, fullAppData> onde fullAppData tem caminhos absolutos
         
         this.runningApps = new Map(); // Map<instanceId, {appCoreInstance, appUIInstance, appTaskbarIcon}>
-        this.activeAppInstanceId = null; 
+        this.activeAppInstanceId = null;
 
-        this.initialZIndex = 100; 
+        this.initialZIndex = 100;
 
         window.appManager = this; // Garante acesso global
     }
@@ -42,7 +43,8 @@ export class AppManager {
                     dirApp: appConfig.dirApp ? `${baseConfig.path}${appConfig.dirApp}` : null,
                     jsFile: appConfig.jsFile ? `${baseConfig.path}${appConfig.jsFile}` : null,
                     styleFile: appConfig.styleFile ? `${baseConfig.path}${appConfig.styleFile}` : null,
-                    // Outras propriedades como icon_url já devem ser absolutas ou serão resolvidas na AppCore/UI
+                    // AGORA resolve icon_url também
+                    icon_url: appConfig.icon_url ? `${baseConfig.path}${appConfig.icon_url}` : "/assets/icons/apps/generic_app_icon.svg",
                 };
                 this.loadedAppDetails.set(baseConfig.id, fullAppData);
                 console.log(`[AppManager] Configuração do app '${baseConfig.id}' carregada e resolvida.`);
@@ -88,12 +90,12 @@ export class AppManager {
 
         try {
             // Passa o desktopElement (agora 'screenElement' no AppWindowSystem)
-            const appUIInstance = await appCoreInstance.run(this.desktopElement, terminalOutputCallback, appParams); 
+            const appUIInstance = await appCoreInstance.run(this.desktopElement, terminalOutputCallback, appParams);
 
             this.runningApps.set(appCoreInstance.instanceId, {
                 appCoreInstance: appCoreInstance,
-                appUIInstance: appUIInstance, 
-                appTaskbarIcon: null 
+                appUIInstance: appUIInstance,
+                appTaskbarIcon: null
             });
 
             if (appData.mode === 'system_window' && appUIInstance) {
@@ -131,15 +133,15 @@ export class AppManager {
      * @param {object} appCoreInstance - A instância do AppCore do aplicativo.
      */
     createIcon(appCoreInstance) {
-        if (appCoreInstance.mode !== 'system_window') return; 
+        if (appCoreInstance.mode !== 'system_window') return;
 
         const appIconDiv = document.createElement('div');
         appIconDiv.classList.add('tool_bar__apps_on__app_icon'); // Este div será o elemento clicável
-        appIconDiv.dataset.instanceId = appCoreInstance.instanceId; 
+        appIconDiv.dataset.instanceId = appCoreInstance.instanceId;
 
         const appIconImg = document.createElement('img');
         appIconImg.classList.add('tool_bar__apps_on__app_icon__img'); // A imagem dentro do div
-        appIconImg.src = appCoreInstance.icon_url;
+        appIconImg.src = appCoreInstance.icon_url; // appCoreInstance.icon_url já é absoluto
 
         appIconDiv.appendChild(appIconImg); // Adiciona a imagem ao div do ícone
         this.appsOnToolBarElement.appendChild(appIconDiv); // Adiciona o div do ícone à barra de tarefas
@@ -193,9 +195,9 @@ export class AppManager {
         });
 
         // Remove a classe 'active-app' e reinicia z-index para todas as janelas
-        this.desktopElement.querySelectorAll('.app').forEach(appElement => { 
+        this.desktopElement.querySelectorAll('.app').forEach(appElement => {
             appElement.classList.remove('active-app');
-            appElement.style.zIndex = this.initialZIndex; 
+            appElement.style.zIndex = this.initialZIndex;
         });
 
         // Define o novo aplicativo ativo
@@ -204,7 +206,7 @@ export class AppManager {
 
         if (appWindowElement) {
             appWindowElement.classList.add('active-app');
-            appWindowElement.style.zIndex = this.initialZIndex + 1; 
+            appWindowElement.style.zIndex = this.initialZIndex + 1;
 
             // Ativa o ícone correspondente na barra de tarefas
             if (appInfoToActivate.appTaskbarIcon) {
@@ -227,7 +229,7 @@ export class AppManager {
         // Apps custom_ui (apps de sistema) não podem ser fechados pelo usuário
         if (appInfo.appCoreInstance.mode === "custom_ui") {
             console.warn(`[AppManager] Tentativa de remover aplicativo de sistema (custom_ui) '${appInfo.appCoreInstance.app_name}' (ID: ${instanceId}). Não permitido.`);
-            return; 
+            return;
         }
 
         // Chama o método stop() do AppCore para limpeza
@@ -237,7 +239,7 @@ export class AppManager {
         if (appInfo.appUIInstance && appInfo.appUIInstance.appWindowElement) { // Para system_window
             appInfo.appUIInstance.appWindowElement.remove();
         } else if (appInfo.appUIInstance && appInfo.appUIInstance.appElement) { // Para custom_ui (embora não seja removível por aqui)
-             appInfo.appUIInstance.appElement.remove();
+            appInfo.appUIInstance.appElement.remove();
         }
 
         // Remove o ícone da barra de tarefas, se existir

@@ -1,4 +1,4 @@
-// apps/terminal/main.js - v1.0.23
+// apps/terminal/main.js - v1.0.24 (Atualizado para Shadow DOM)
 
 // Importe a classe BaseApp
 import { BaseApp } from '../../core/BaseApp.js'; // Ajuste o caminho conforme a sua estrutura de pastas
@@ -9,12 +9,19 @@ import { commands } from './commands.js'; // Mantenha a importação dos comando
  * Gerencia a interface e a lógica do terminal.
  */
 export default class TerminalApp extends BaseApp {
+    /**
+     * Construtor do TerminalApp.
+     * @param {AppCore} appCoreInstance - A instância do AppCore.
+     * @param {object} standardAPIs - APIs padrão fornecidas pelo sistema.
+     */
     constructor(appCoreInstance, standardAPIs) {
-        super(appCoreInstance, standardAPIs); // Chama o construtor da classe base
+        // O appContentRoot será definido pelo AppWindowSystem antes de onRun ser chamado,
+        // então não o passamos aqui diretamente.
+        super(appCoreInstance, standardAPIs);
 
         // Referências aos elementos DOM do terminal
-        this.terminalAppElement = null; // O elemento div#terminal-app com o ID da instância
-        this.terminalOutputElement = null; // Agora é o principal contêiner rolável
+        this.terminalAppElement = null; // O elemento div#terminal-app dentro do Shadow DOM
+        this.terminalOutputElement = null; // O principal contêiner rolável
         this.inputElement = null;
         this.terminalInputLine = null;
         this.terminalPromptElement = null;
@@ -39,13 +46,13 @@ export default class TerminalApp extends BaseApp {
      * @param {string} description - Descrição do comando.
      */
     registerCommand(name, func, description = 'Sem descrição.') {
-        this.commands[name] = { func, description };
+        this.commands[name] = { action: func, description }; // Ajustado para usar 'action' para consistência
     }
 
     /**
      * Escreve uma linha no terminal.
      * @param {string} text - O texto a ser escrito.
-     * @param {string} [type='output'] - Tipo de mensagem ('output', 'error', 'system').
+     * @param {string} [type='output'] - Tipo de mensagem ('output', 'input', 'error', 'system').
      */
     writeLine(text, type = 'output') {
         if (this.terminalOutputElement) {
@@ -97,7 +104,7 @@ export default class TerminalApp extends BaseApp {
             try {
                 // Passa o writeLine pré-vinculado para os comandos, e o appManager da BaseApp
                 // O último argumento é a instância do AppManager (this.appManager)
-                const result = await this.commands[commandName].func(
+                const result = await this.commands[commandName].action( // Usa .action
                     args,
                     this.writeLine, // appendToTerminal
                     this.terminalOutputElement, // terminalOutput (para comandos como 'clear')
@@ -134,28 +141,28 @@ export default class TerminalApp extends BaseApp {
 
     /**
      * Método chamado quando o aplicativo é executado.
-     * Assume que o HTML já foi injetado no appElement pelo AppWindowSystem.
+     * Assume que o HTML já foi injetado no Shadow DOM do appContentRoot.
      */
     onRun() {
         console.log(`[${this.appName} - ${this.instanceId}] TerminalApp.onRun() started. DOM should be ready.`);
 
-        // O elemento raiz do terminal é o próprio appElement, que tem o ID da instância
-        // Ele é acessado diretamente pelo document.getElementById(this.instanceId)
-        this.terminalAppElement = document.getElementById(this.instanceId);
+        // Acessa o Shadow Root através do appContentRoot
+        const shadowRoot = this.appContentRoot.shadowRoot;
 
-        if (!this.terminalAppElement) {
-            console.error(`[${this.appName} - ${this.instanceId}] Erro: Elemento raiz do terminal não encontrado! ID: ${this.instanceId}`);
+        if (!shadowRoot) {
+            console.error(`[${this.appName} - ${this.instanceId}] Erro: Shadow Root não encontrado para o app!`);
             return;
         }
 
-        // Acessa os elementos internos do terminal a partir de this.terminalAppElement
-        this.terminalOutputElement = this.terminalAppElement.querySelector('#terminalOutput');
-        this.inputElement = this.terminalAppElement.querySelector('#terminalInput');
-        this.terminalInputLine = this.terminalAppElement.querySelector('.terminal-input-line');
-        this.terminalPromptElement = this.terminalAppElement.querySelector('#terminalPrompt'); // Usar ID para o prompt
+        // Acessa os elementos internos do terminal a partir do Shadow DOM
+        this.terminalAppElement = shadowRoot.querySelector('#terminal-app');
+        this.terminalOutputElement = shadowRoot.querySelector('#terminalOutput');
+        this.inputElement = shadowRoot.querySelector('#terminalInput');
+        this.terminalInputLine = shadowRoot.querySelector('.terminal-input-line');
+        this.terminalPromptElement = shadowRoot.querySelector('#terminalPrompt');
 
-        if (!this.terminalOutputElement || !this.inputElement || !this.terminalInputLine || !this.terminalPromptElement) {
-            console.error(`[${this.appName} - ${this.instanceId}] Erro: Um ou mais elementos do terminal (output, input, input-line, prompt) não foram encontrados!`);
+        if (!this.terminalAppElement || !this.terminalOutputElement || !this.inputElement || !this.terminalInputLine || !this.terminalPromptElement) {
+            console.error(`[${this.appName} - ${this.instanceId}] Erro: Um ou mais elementos do terminal (terminal-app, output, input, input-line, prompt) não foram encontrados dentro do Shadow DOM!`);
             return;
         }
 
@@ -167,10 +174,10 @@ export default class TerminalApp extends BaseApp {
         this.inputElement.focus(); // Foca o input na inicialização
         this.scrollToBottom(); // Garante que o terminal esteja no final
 
-        // Adiciona um listener de clique ao elemento da janela para refocar o input
+        // Adiciona um listener de clique ao elemento host do Shadow DOM para refocar o input
         // Isso é importante para que o usuário possa clicar em qualquer lugar da janela do terminal
         // e o foco volte para o input.
-        this.appCore.appElement.addEventListener('click', () => {
+        this.appContentRoot.addEventListener('click', () => {
             this.inputElement.focus();
         });
     }
@@ -192,14 +199,12 @@ export default class TerminalApp extends BaseApp {
             }
         } else if (event.key === 'ArrowDown') {
             event.preventDefault(); // Previne o movimento do cursor no input
-            if (this.commandHistory.length > 0) {
+            if (this.historyIndex > 0) {
                 this.historyIndex--;
-                if (this.historyIndex < 0) {
-                    this.historyIndex = -1; // Volta para o input vazio
-                    this.inputElement.value = '';
-                } else {
-                    this.inputElement.value = this.commandHistory[this.historyIndex];
-                }
+                this.inputElement.value = this.commandHistory[this.historyIndex];
+            } else if (this.historyIndex === 0) {
+                this.historyIndex = -1; // Volta para o input vazio
+                this.inputElement.value = '';
             }
         }
     }
@@ -208,6 +213,12 @@ export default class TerminalApp extends BaseApp {
         console.log(`[${this.appName} - ${this.instanceId}] Método onCleanup() do TerminalApp executado.`);
         if (this.inputElement) {
             this.inputElement.removeEventListener('keydown', this.handleKeydown);
+        }
+        if (this.appContentRoot) {
+            // Remove o listener de clique do elemento host do Shadow DOM
+            this.appContentRoot.removeEventListener('click', () => {
+                this.inputElement.focus();
+            });
         }
         // Limpar referências DOM para evitar vazamentos de memória
         this.terminalAppElement = null;

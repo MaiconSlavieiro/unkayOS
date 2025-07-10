@@ -1,0 +1,30 @@
+/* Resets básicos */
+html, body {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+    height: 100%;
+    width: 100%;
+    overflow: hidden; /* Para garantir que o desktop gerencia o overflow */
+  }
+  
+  *, *::before, *::after {
+    box-sizing: inherit;
+  }
+  
+  body {
+    background-color: var(--color-background);
+    font-family: var(--font-family-base);
+    font-size: var(--font-size-base);
+    line-height: var(--line-height-normal);
+    color: var(--color-text-on-dark);
+    -webkit-font-smoothing: antialiased;
+    -moz-osx-font-smoothing: grayscale;
+  }
+  
+  /* Estilos de foco padrão */
+  :focus-visible {
+    outline: 2px solid var(--color-primary-base);
+    outline-offset: 2px;
+  }
+  

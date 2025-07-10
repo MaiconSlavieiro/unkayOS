@@ -1,40 +1,48 @@
-// /core/BaseApp.js - v1.0.19
+// core/BaseApp.js - v1.0.1 (Nova classe base para aplicativos)
 
 /**
- * Classe Base para todos os aplicativos no sistema.
- * Fornece acesso à instância do AppCore e a APIs padrão como funções de timer e AppManager.
+ * Classe base para todos os aplicativos do sistema.
+ * Fornece acesso ao AppCore, APIs padrão e ao elemento raiz do conteúdo do aplicativo (host do Shadow DOM).
  */
 export class BaseApp {
     /**
-     * Construtor da classe base.
-     * @param {object} appCoreInstance - A instância do AppCore associada a este aplicativo.
-     * @param {object} standardAPIs - Objeto contendo APIs padrão (ex: { setTimeout, setInterval, clearTimeout, clearInterval, appManager }).
+     * Construtor da BaseApp.
+     * @param {AppCore} appCoreInstance - A instância do AppCore associada a este aplicativo.
+     * @param {object} standardAPIs - Objeto contendo APIs padrão (setTimeout, setInterval, appManager, etc.).
+     * @param {HTMLElement} [appContentRoot=null] - O elemento host do Shadow DOM onde o conteúdo do app é renderizado.
      */
-    constructor(appCoreInstance, standardAPIs) {
-        console.log(`[${appCoreInstance.app_name} - ${appCoreInstance.instanceId}] BaseApp constructor: standardAPIs received:`, standardAPIs);
-        if (!appCoreInstance) {
-            console.error("BaseApp: appCoreInstance é obrigatório.");
-            throw new Error("AppCoreInstance não fornecido ao BaseApp.");
-        }
+    constructor(appCoreInstance, standardAPIs, appContentRoot = null) {
         this.appCore = appCoreInstance;
-        this.id = appCoreInstance.id;
         this.instanceId = appCoreInstance.instanceId;
         this.appName = appCoreInstance.app_name;
-
+        
+        // APIs padrão fornecidas pelo sistema
+        this.appManager = standardAPIs.appManager;
         this.setTimeout = standardAPIs.setTimeout;
         this.setInterval = standardAPIs.setInterval;
         this.clearTimeout = standardAPIs.clearTimeout;
         this.clearInterval = standardAPIs.clearInterval;
-        this.appManager = standardAPIs.appManager; // Instância do AppManager
 
-        console.log(`[${this.appName} - ${this.instanceId}] BaseApp constructor: this.setInterval after assignment:`, this.setInterval);
+        // O elemento HTML que hospeda o Shadow DOM do aplicativo.
+        // Os apps que estendem BaseApp devem usar este elemento (ou seu shadowRoot) para consultar o DOM interno.
+        this.appContentRoot = appContentRoot; 
     }
 
-    onRun() {
-        console.warn(`[${this.appName} - ${this.instanceId}] Método 'onRun()' não implementado na classe filha.`);
+    /**
+     * Método a ser sobrescrito pelos aplicativos.
+     * É chamado quando o aplicativo é executado e seu DOM está pronto.
+     * @param {function} [terminalOutputCallback=null] - Callback para enviar saída para o terminal (usado por apps headless).
+     * @param {Array<string>} [appParams=[]] - Parâmetros passados ao iniciar o app.
+     */
+    onRun(terminalOutputCallback = null, appParams = []) {
+        console.warn(`[${this.appName} - ${this.instanceId}] Método onRun() não implementado na classe base. Por favor, implemente-o em sua classe de aplicativo.`);
     }
 
+    /**
+     * Método a ser sobrescrito pelos aplicativos para limpeza de recursos.
+     * É chamado quando o aplicativo é encerrado.
+     */
     onCleanup() {
-        // console.log(`[${this.appName} - ${this.instanceId}] Método 'onCleanup()' padrão executado.`);
+        console.warn(`[${this.appName} - ${this.instanceId}] Método onCleanup() não implementado na classe base. Considere limpar listeners e recursos aqui.`);
     }
 }

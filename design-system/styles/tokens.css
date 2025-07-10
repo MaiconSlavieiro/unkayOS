@@ -1,0 +1,64 @@
+/* design-system/styles/tokens.css */
+
+:root {
+    /* Cores Primárias */
+    --color-primary-base: #37eae8;
+    --color-primary-variation-1: #12f9e7;
+    --color-primary-variation-2: #1ac0bb;
+  
+    /* Cores Secundárias */
+    --color-secondary-base: #092335;
+    --color-secondary-variation-1: #0b2c45;
+    --color-secondary-variation-2: #0f3d59;
+  
+    /* Cores Claras */
+    --color-light-primary: rgba(215, 215, 215, 1);
+    --color-light-secondary: rgba(180, 180, 180, 1);
+    --color-light-tertiary: rgba(150, 150, 150, 1);
+  
+    /* Cores Escuras */
+    --color-dark-primary: rgba(43, 43, 43, 1);
+    --color-dark-primary-high-opacity: rgba(43, 43, 43, 0.8);
+    --color-dark-primary-middle-up-opacity: rgba(43, 43, 43, 0.65);
+    --color-dark-primary-middle-opacity: rgba(43, 43, 43, 0.5);
+    --color-dark-secondary: rgba(25, 25, 25, 1);
+    --color-dark-tertiary: rgba(34, 34, 34, 1);
+  
+    /* Cores auxiliares */
+    --color-info: #3498db;
+    --color-success: #2ecc71;
+    --color-warning: #f1c40f;
+    --color-error: #e74c3c;
+    --color-accent-highlight: #ff7f50;
+  
+    /* Texto */
+    --color-text-on-dark: #ecf0f1;
+    --color-text-on-light: #2c3e50;
+  
+    /* Bordas */
+    --color-border-light: #bdc3c7;
+    --color-border-dark: #34495e;
+  
+    /* Efeitos */
+    --shadow-color: rgba(0, 0, 0, 0.2);
+    --blur-intensity: 5px;
+  
+    /* Espaçamento */
+    --spacing-xs: 4px;
+    --spacing-sm: 8px;
+    --spacing-md: 16px;
+    --spacing-lg: 24px;
+    --spacing-xl: 32px;
+  
+    /* Border radius */
+    --border-radius-sm: 4px;
+    --border-radius-md: 8px;
+    --border-radius-lg: 12px;
+  
+    /* Transições */
+    --transition-ease: all 0.2s ease-in-out;
+  
+    /* Exemplo de var derivada */
+    --color-background: var(--color-dark-secondary);
+  }
+  

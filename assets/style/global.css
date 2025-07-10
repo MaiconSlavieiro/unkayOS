@@ -1,0 +1,336 @@
+/* Importa os tokens e estilos base do Design System */
+@import url("/design-system/styles/main.css");
+
+/* Font Awesome (mantido como está) */
+@font-face {
+  font-family: "Font-Awesome-5-Free-Regular-400";
+  src: url("../fonts/Font-Awesome-5-Free-Regular-400.otf");
+}
+@font-face {
+  font-family: "Font-Awesome-5-Free-Solid-900";
+  src: url("../fonts/Font-Awesome-5-Free-Solid-900.otf");
+}
+@font-face {
+  font-family: "Font-Awesome-5-Brands-Regular-400";
+  src: url("../fonts/Font-Awesome-5-Brands-Regular-400.otf");
+}
+
+/* Base */
+* {
+  box-sizing: border-box;
+  font-family: var(--font-family-base);
+}
+
+iframe {
+  border: 0;
+  width: 100%;
+  height: 100%;
+}
+
+body {
+  margin: 0;
+  padding: 0;
+  overflow: hidden;
+}
+
+/* Scrollbar personalizada */
+::-webkit-scrollbar {
+  width: 10px;
+  height: 10px;
+}
+::-webkit-scrollbar-track {
+  background: var(--color-dark-primary-middle-opacity);
+}
+::-webkit-scrollbar-thumb {
+  background: var(--color-light-tertiary);
+}
+::-webkit-scrollbar-thumb:hover {
+  background: var(--color-light-secondary);
+}
+::-webkit-scrollbar-corner {
+  background: var(--color-dark-primary-high-opacity);
+}
+
+/* Estilos de UI */
+.button {
+  text-decoration: none;
+  cursor: pointer;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+}
+.button.large {
+  width: 15vw;
+  height: 40px;
+}
+.button.light {
+  background-color: var(--color-light-primary);
+  color: var(--color-dark-primary);
+}
+
+/* Desktop */
+#desktop {
+  width: 100vw;
+  height: 100vh;
+  background-position: 50% 40%;
+  background-size: cover;
+  position: fixed;
+  background-color: var(--color-dark-secondary);
+  top: 0;
+  left: 0;
+  overflow: hidden;
+}
+
+/* Menu de aplicativos */
+.menu_apps {
+  background-color: var(--color-dark-primary-middle-opacity);
+  min-height: 35vh;
+  width: 20vw;
+  position: fixed;
+  bottom: 50px;
+  left: 0;
+  display: none;
+  z-index: 1000;
+  backdrop-filter: blur(var(--blur-intensity));
+  -webkit-backdrop-filter: blur(var(--blur-intensity));
+  border-top-right-radius: var(--border-radius-md);
+  box-shadow: 2px 2px 5px var(--shadow-color);
+  padding: 10px 0;
+}
+.menu_apps.show {
+  display: block;
+}
+.menu_apps__app {
+  display: flex;
+  align-items: center;
+  height: 45px;
+  padding: 0 20px;
+  color: var(--color-light-primary);
+  transition: background-color 0.2s ease;
+}
+.menu_apps__app:hover {
+  background-color: var(--color-dark-primary-high-opacity);
+  cursor: pointer;
+}
+.menu_apps__app__icon {
+  width: 30px;
+  height: 30px;
+  padding: 5px;
+  margin-right: 10px;
+}
+.menu_apps__app__name {
+  width: 100%;
+  padding: 5px;
+  font-size: 1.1em;
+}
+
+/* Barra de ferramentas */
+.tool_bar {
+  position: fixed;
+  bottom: 0;
+  height: 50px;
+  width: 100%;
+  background-color: var(--color-dark-primary);
+  box-shadow: 0 -2px 5px var(--shadow-color);
+  display: flex;
+  align-items: center;
+  padding: 0 5px;
+  z-index: 1000;
+  backdrop-filter: blur(var(--blur-intensity));
+  -webkit-backdrop-filter: blur(var(--blur-intensity));
+}
+.tool_bar__start_menu {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  justify-content: center;
+  align-items: center;
+  transition: background-color 0.2s ease;
+}
+.tool_bar__start_menu:hover {
+  background-color: var(--color-dark-secondary);
+}
+.tool_bar__start_menu__icon {
+  width: 25px;
+  height: 25px;
+}
+.tool_bar__apps_on {
+  display: flex;
+  flex-grow: 1;
+  padding-left: 10px;
+}
+.tool_bar__apps_on__app_icon {
+  width: 50px;
+  height: 50px;
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  margin: 0 5px;
+  border-radius: var(--border-radius-sm);
+  transition: background-color 0.2s ease, opacity 0.2s ease, filter 0.2s ease;
+  cursor: pointer;
+  border-bottom: 2px solid transparent;
+}
+.tool_bar__apps_on__app_icon.active {
+  background-color: var(--color-dark-tertiary);
+  border-bottom-color: var(--color-light-secondary);
+}
+.tool_bar__apps_on__app_icon.minimized {
+  opacity: 0.5;
+  filter: grayscale(70%);
+}
+.tool_bar__apps_on__app_icon:hover {
+  background-color: var(--color-dark-secondary);
+}
+.tool_bar__apps_on__app_icon__img {
+  width: 30px;
+  height: 30px;
+}
+
+/* Aplicativos */
+.app {
+  position: absolute;
+  background-color: var(--color-dark-primary-middle-up-opacity);
+  box-shadow: 0 4px 10px var(--shadow-color);
+  border-radius: var(--border-radius-md);
+  overflow: hidden;
+  z-index: 0;
+  opacity: 0.9;
+  backdrop-filter: blur(var(--blur-intensity));
+  -webkit-backdrop-filter: blur(var(--blur-intensity));
+}
+.app.no-transition {
+  transition: none !important;
+}
+.app.active-app {
+  opacity: 1;
+  border: 1px solid var(--color-light-secondary);
+}
+.app.minimized {
+  display: none;
+}
+.app.maximized {
+  border-radius: 0;
+  box-shadow: none;
+  transition: none;
+}
+
+/* Redimensionadores */
+.app__board_right,
+.app__board_left,
+.app__board_top,
+.app__board_bottom,
+.app__board_top-left,
+.app__board_top-right,
+.app__board_bottom-left,
+.app__board_bottom-right {
+  position: absolute;
+  z-index: 10;
+}
+.app__board_right,
+.app__board_left {
+  width: 5px;
+  height: 100%;
+}
+.app__board_right {
+  right: 0;
+  cursor: ew-resize;
+}
+.app__board_left {
+  left: 0;
+  cursor: ew-resize;
+}
+.app__board_top,
+.app__board_bottom {
+  width: 100%;
+  height: 5px;
+}
+.app__board_top {
+  top: 0;
+  cursor: ns-resize;
+}
+.app__board_bottom {
+  bottom: 0;
+  cursor: ns-resize;
+}
+.app__board_top-left,
+.app__board_top-right,
+.app__board_bottom-left,
+.app__board_bottom-right {
+  width: 15px;
+  height: 15px;
+  z-index: 11;
+}
+.app__board_top-left {
+  top: 0;
+  left: 0;
+  cursor: nwse-resize;
+}
+.app__board_top-right {
+  top: 0;
+  right: 0;
+  cursor: nesw-resize;
+}
+.app__board_bottom-left {
+  bottom: 0;
+  left: 0;
+  cursor: nesw-resize;
+}
+.app__board_bottom-right {
+  bottom: 0;
+  right: 0;
+  cursor: nwse-resize;
+}
+
+/* Barra superior da janela */
+.app__top_bar {
+  height: 30px;
+  background-color: var(--color-dark-primary);
+  display: flex;
+  align-items: center;
+  justify-content: flex-end;
+  cursor: grab;
+}
+.app__top_bar__app_name {
+  width: 100%;
+  height: 100%;
+  color: var(--color-light-primary);
+  font-size: 11pt;
+  display: flex;
+  align-items: center;
+  padding: 0 10px;
+  flex-grow: 1;
+}
+.app__top_bar__close_button,
+.app__top_bar__min_button,
+.app__top_bar__max_button {
+  width: 15px;
+  height: 15px;
+  min-width: 15px;
+  min-height: 15px;
+  border-radius: 50%;
+  margin-right: 8px;
+  cursor: pointer;
+  transition: background-color 0.2s ease;
+}
+.app__top_bar__close_button {
+  background-color: #ff5f56;
+}
+.app__top_bar__min_button {
+  background-color: #ffbd2e;
+}
+.app__top_bar__max_button {
+  background-color: #27c93f;
+}
+
+.app__content {
+  display: flex;
+  width: 100%;
+  height: calc(100% - 30px);
+  padding-top: 0;
+  background-color: var(--color-dark-primary-middle-opacity);
+}
+
+.custom-ui-app {
+  /* sem estilo adicional por enquanto */
+}

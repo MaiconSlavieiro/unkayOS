@@ -1,103 +1,110 @@
-// apps/about/main.js
+// apps/about/main.js - v1.0.1
 
-import { BaseApp } from '../../core/BaseApp.js'; // Ajuste o caminho conforme a sua estrutura de pastas
+import { BaseApp } from '../../core/BaseApp.js';
 
-/**
- * Aplicativo "About" para exibir informações sobre o UnkayOS.
- */
 export default class AboutApp extends BaseApp {
     constructor(appCoreInstance, standardAPIs) {
         super(appCoreInstance, standardAPIs);
-        console.log(`[${this.appName} - ${this.instanceId}] Construtor do AboutApp executado.`);
 
-        // Referências aos elementos DOM que serão preenchidos
-        this.aboutAppElement = null;
+        this.osNameElement = null;
+        this.osVersionElement = null;
+        this.kernelInfoElement = null;
         this.uptimeInfoElement = null;
         this.developerInfoElement = null;
-        this.intervalId = null; // Para o timer do uptime
+        this.aboutDescriptionElement = null;
+        this.aboutTitleElement = null;
+        this.aboutIconElement = null;
+
+        this.startTime = Date.now(); // Marca o tempo de início do aplicativo
+        this.uptimeInterval = null; // Para armazenar o ID do intervalo do uptime
     }
 
     /**
-     * Método chamado quando o aplicativo é executado.
-     * Preenche as informações dinamicamente.
+     * Calcula e formata o tempo de atividade (uptime).
+     * @returns {string} Tempo de atividade formatado.
      */
+    getUptime() {
+        const elapsedMilliseconds = Date.now() - this.startTime;
+        const seconds = Math.floor(elapsedMilliseconds / 1000);
+        const minutes = Math.floor(seconds / 60);
+        const hours = Math.floor(minutes / 60);
+        const days = Math.floor(hours / 24);
+
+        const remainingHours = hours % 24;
+        const remainingMinutes = minutes % 60;
+        const remainingSeconds = seconds % 60;
+
+        let uptimeString = '';
+        if (days > 0) uptimeString += `${days}d `;
+        if (remainingHours > 0) uptimeString += `${remainingHours}h `;
+        if (remainingMinutes > 0) uptimeString += `${remainingMinutes}m `;
+        uptimeString += `${remainingSeconds}s`;
+
+        return uptimeString.trim();
+    }
+
+    /**
+     * Atualiza o elemento de uptime no DOM.
+     */
+    updateUptime() {
+        if (this.uptimeInfoElement) {
+            this.uptimeInfoElement.textContent = this.getUptime();
+        }
+    }
+
     onRun() {
-        console.log(`[${this.appName} - ${this.instanceId}] AboutApp.onRun() iniciado.`);
+        console.log(`[${this.appName} - ${this.instanceId}] AboutApp.onRun() started. DOM should be ready.`);
 
-        // O elemento raiz do app é o div com o ID da instância da janela
-        this.aboutAppElement = document.getElementById(this.instanceId);
+        const shadowRoot = this.appContentRoot.shadowRoot;
 
-        if (!this.aboutAppElement) {
-            console.error(`[${this.appName} - ${this.instanceId}] Erro: Elemento raiz do AboutApp não encontrado! ID: ${this.instanceId}`);
+        if (!shadowRoot) {
+            console.error(`[${this.appName} - ${this.instanceId}] Erro: Shadow Root não encontrado para o app!`);
             return;
         }
 
-        // Obtém referências aos elementos internos
-        this.uptimeInfoElement = this.aboutAppElement.querySelector("#uptimeInfo");
-        this.developerInfoElement = this.aboutAppElement.querySelector("#developerInfo");
+        // Obtém referências aos elementos dentro do Shadow DOM
+        this.osNameElement = shadowRoot.querySelector('#osName');
+        this.osVersionElement = shadowRoot.querySelector('#osVersion');
+        this.kernelInfoElement = shadowRoot.querySelector('#kernelInfo');
+        this.uptimeInfoElement = shadowRoot.querySelector('#uptimeInfo');
+        this.developerInfoElement = shadowRoot.querySelector('#developerInfo');
+        this.aboutDescriptionElement = shadowRoot.querySelector('#aboutDescription');
+        this.aboutTitleElement = shadowRoot.querySelector('#aboutTitle');
+        this.aboutIconElement = shadowRoot.querySelector('.about-icon');
 
-        if (!this.uptimeInfoElement || !this.developerInfoElement) {
-            console.error(`[${this.appName} - ${this.instanceId}] Erro: Um ou mais elementos do AboutApp (uptime, developer) não foram encontrados!`);
-            return;
+        // Atualiza o texto do título e do ícone com base nos dados do appCore
+        if (this.aboutTitleElement) {
+            this.aboutTitleElement.textContent = `Sobre ${this.appCore.app_name}`;
+        }
+        if (this.aboutIconElement) {
+            // O src do ícone no HTML deve ser relativo à pasta do app,
+            // mas aqui podemos usar o icon_url resolvido do appCore se necessário,
+            // embora para o Shadow DOM, o caminho relativo no HTML seja mais comum.
+            // Para este caso, o HTML já usa "about.svg", que é resolvido pelo Shadow DOM.
+            // Se o ícone viesse de um URL externo ou de outro lugar, poderíamos usar:
+            // this.aboutIconElement.src = this.appCore.icon_url;
         }
 
-        // Define o nome do desenvolvedor (pode ser configurável no apps.json ou em outro lugar)
-        this.developerInfoElement.textContent = "Maicon Slavieiro / Reverso do Avesso"; // Altere para seu nome/organização
 
-        // Inicia o contador de uptime
-        this.startUptimeCounter();
+        // Inicia o intervalo para atualizar o uptime a cada segundo
+        this.uptimeInterval = this.setInterval(this.updateUptime.bind(this), 1000);
+        this.updateUptime(); // Chama uma vez imediatamente para exibir o uptime inicial
     }
 
-    /**
-     * Inicia um contador de uptime simulado.
-     */
-    startUptimeCounter() {
-        let seconds = 0;
-        // Tenta recuperar o uptime de uma sessão anterior se houver um GlobalStore
-        if (this.globalStore) {
-            const storedUptime = this.globalStore.get('unkayosUptimeSeconds');
-            if (storedUptime) {
-                seconds = parseInt(storedUptime, 10);
-                console.log(`[${this.appName} - ${this.instanceId}] Uptime recuperado do GlobalStore: ${seconds} segundos.`);
-            }
-        }
-
-        const updateUptime = () => {
-            seconds++;
-            const hours = Math.floor(seconds / 3600);
-            const minutes = Math.floor((seconds % 3600) / 60);
-            const remainingSeconds = seconds % 60;
-
-            const format = (num) => String(num).padStart(2, '0');
-
-            if (this.uptimeInfoElement) {
-                this.uptimeInfoElement.textContent = `${format(hours)}h ${format(minutes)}m ${format(remainingSeconds)}s`;
-            }
-
-            // Atualiza o GlobalStore a cada 10 segundos (ou outra frequência)
-            if (this.globalStore && seconds % 10 === 0) {
-                this.globalStore.setState({ unkayosUptimeSeconds: seconds });
-            }
-        };
-
-        // Chama imediatamente para exibir 00h 00m 00s ou o valor recuperado
-        updateUptime(); 
-        // Usa o setInterval gerenciado pelo AppCore
-        this.intervalId = this.setInterval(updateUptime, 1000);
-    }
-
-    /**
-     * Método chamado quando o aplicativo é encerrado.
-     * Limpa os recursos.
-     */
     onCleanup() {
         console.log(`[${this.appName} - ${this.instanceId}] Método onCleanup() do AboutApp executado.`);
-        if (this.intervalId) {
-            this.clearInterval(this.intervalId); // Limpa o intervalo de uptime
-            this.intervalId = null;
+        if (this.uptimeInterval) {
+            this.clearInterval(this.uptimeInterval); // Limpa o intervalo
+            this.uptimeInterval = null;
         }
+        // Limpar referências DOM para evitar vazamentos de memória
+        this.osNameElement = null;
+        this.osVersionElement = null;
+        this.kernelInfoElement = null;
         this.uptimeInfoElement = null;
         this.developerInfoElement = null;
-        this.aboutAppElement = null;
+        this.aboutDescriptionElement = null;
+        this.aboutTitleElement = null;
+        this.aboutIconElement = null;
     }
 }

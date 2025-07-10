@@ -1,0 +1,7 @@
+/* Este DEVE ser o primeiro import sempre */
+@import url("/design-system/styles/tokens.css");
+
+/* Tipografia e resets base */
+@import url("/design-system/styles/base.css");
+@import url("/design-system/styles/typography.css");
+

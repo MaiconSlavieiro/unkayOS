@@ -1,0 +1,69 @@
+/* apps/terminal/style.css - v1.0.0 - ajustado para DS */
+
+/* Container principal com fundo escuro médio e texto claro */
+.terminal-container {
+    background-color: transparent;
+    color: var(--color-success); /* verde suave para texto principal */
+    font-family: 'Courier New', Courier, monospace;
+    font-size: 1em;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    padding: var(--spacing-md);
+    box-sizing: border-box;
+    width: 100%;
+}
+
+/* Área de saída com margem e scroll */
+.terminal-output {
+    flex-grow: 1;
+    overflow-y: auto;
+    margin-bottom: var(--spacing-md);
+    white-space: pre-wrap; /* mantém espaços e quebras */
+    color: var(--color-text-on-dark); /* texto claro para saída */
+}
+
+/* Linha de input alinhada */
+.terminal-input-line {
+    display: flex;
+    align-items: center;
+}
+
+/* Prompt com cor de destaque */
+.terminal-prompt {
+    color: var(--color-primary-base); /* azul vibrante para prompt */
+    margin-right: var(--spacing-xs);
+}
+
+/* Input do terminal transparente, texto verde */
+.terminal-input {
+    background-color: transparent;
+    border: none;
+    color: var(--color-success);
+    flex-grow: 1;
+    outline: none;
+    caret-color: var(--color-success);
+}
+
+/* Linha de comando digitada */
+.terminal-line--input {
+    color: var(--color-primary-variation-1); /* azul claro */
+}
+
+/* Erros em vermelho com destaque */
+.terminal-line--error {
+    color: var(--color-error);
+    font-weight: 600;
+}
+
+/* Mensagens do sistema em amarelo vibrante */
+.terminal-line--system {
+    color: var(--color-warning);
+    font-style: italic;
+}
+
+/* Classe auxiliar para erro */
+.red {
+    color: var(--color-error);
+    font-weight: 600;
+}
