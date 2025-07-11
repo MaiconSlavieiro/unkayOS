@@ -1,0 +1,43 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Refatoração: Fim do Shadow DOM no unkayOS</title>
+</head>
+<body>
+  <h1>Refatoração: Fim do Shadow DOM no unkayOS</h1>
+  <h2>Por que remover o Shadow DOM?</h2>
+  <ul>
+    <li>Isolamento excessivo dificultava integração entre apps.</li>
+    <li>Debug e inspeção ficavam complexos.</li>
+    <li>Estilos globais não penetravam.</li>
+    <li>Eventos e comunicação entre apps eram problemáticos.</li>
+  </ul>
+  <h2>Nova Estratégia</h2>
+  <ul>
+    <li><strong>Injeção direta:</strong> HTML/CSS/JS dos apps vão direto no DOM principal.</li>
+    <li><strong>Namespace CSS:</strong> Cada app recebe um namespace automático, evitando conflitos de estilo.</li>
+    <li><strong>Limpeza automática:</strong> CSS e elementos são removidos ao fechar o app.</li>
+  </ul>
+  <h2>Como ficou para desenvolvedores?</h2>
+  <ul>
+    <li><strong>Apps:</strong> Não precisam mudar nada, o core faz o namespace.</li>
+    <li><strong>Core:</strong> AppCustomUI e AppWindowSystem usam injeção direta + namespace.</li>
+    <li><strong>Debug:</strong> Inspeção e eventos funcionam normalmente.</li>
+  </ul>
+  <h2>Vantagens</h2>
+  <ul>
+    <li>Código mais simples e fácil de manter.</li>
+    <li>Melhor compatibilidade e performance.</li>
+    <li>Facilidade para customizar e depurar.</li>
+  </ul>
+  <h2>Testes recomendados</h2>
+  <ul>
+    <li>Abrir apps, verificar UI e estilos.</li>
+    <li>Fechar apps, garantir limpeza de CSS.</li>
+    <li>Testar taskbar e menu iniciar.</li>
+  </ul>
+  <h2>Conclusão</h2>
+  <p>O sistema ficou mais simples, flexível e robusto, mantendo isolamento via CSS sem as limitações do Shadow DOM.</p>
+</body>
+</html> 

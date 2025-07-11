@@ -1,0 +1,13 @@
+{
+  "app_name": "Informações do Sistema",
+  "icon_url": "icon.svg",
+  "dirApp": "index.html",
+  "jsFile": "main.js",
+  "styleFile": "style.css",
+  "mode": "desktop_ui",
+  "autorun": true,
+  "hidden": true,
+  "position": "top-right",
+  "width": "250px",
+  "height": "120px"
+} 

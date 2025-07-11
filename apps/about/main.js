@@ -1,110 +1,90 @@
-// apps/about/main.js - v1.0.1
+// apps/about/main.js - menu dinâmico para docs markdown (corrigido para contexto do app)
 
-import { BaseApp } from '../../core/BaseApp.js';
+const DOCS_PATH = '/docs/';
 
-export default class AboutApp extends BaseApp {
-    constructor(appCoreInstance, standardAPIs) {
-        super(appCoreInstance, standardAPIs);
+window.addEventListener('DOMContentLoaded', async () => {
+  const appRoot = document.currentScript.closest('.app__content') || document.body;
+  const docsList = appRoot.querySelector('#about-docs-list');
+  const mainContent = appRoot.querySelector('#about-main-content');
 
-        this.osNameElement = null;
-        this.osVersionElement = null;
-        this.kernelInfoElement = null;
-        this.uptimeInfoElement = null;
-        this.developerInfoElement = null;
-        this.aboutDescriptionElement = null;
-        this.aboutTitleElement = null;
-        this.aboutIconElement = null;
-
-        this.startTime = Date.now(); // Marca o tempo de início do aplicativo
-        this.uptimeInterval = null; // Para armazenar o ID do intervalo do uptime
+  // Busca dinâmica dos arquivos .html na pasta docs
+  let DOCS = [];
+  try {
+    const resp = await fetch(DOCS_PATH); // Tenta listar o diretório (requer suporte do servidor)
+    if (resp.ok) {
+      const html = await resp.text();
+      // Extrai links para arquivos .html
+      const tempDiv = document.createElement('div');
+      tempDiv.innerHTML = html;
+      const links = Array.from(tempDiv.querySelectorAll('a'));
+      DOCS = links
+        .map(a => a.getAttribute('href'))
+        .filter(href => href && href.endsWith('.html'))
+        .map(href => ({ file: href, label: href.replace('.html', '').replace(/[-_]/g, ' ').replace(/\b\w/g, l => l.toUpperCase()) }));
+    } else {
+      throw new Error('Não foi possível listar os arquivos de documentação.');
     }
+  } catch (e) {
+    // Fallback: lista manual (caso o servidor não permita listar diretórios)
+    DOCS = [
+      { file: 'info.html', label: 'Informações' },
+      { file: 'desktop-apps-guide.html', label: 'Guia Desktop Apps' },
+      { file: 'refatoracao-shadow-dom.html', label: 'Refatoração Shadow DOM' },
+      { file: 'CHANGELOG.html', label: 'Changelog' },
+      { file: 'FAQ.html', label: 'FAQ' },
+      { file: 'CONTRIBUTING.html', label: 'Contribuição' }
+    ];
+  }
 
-    /**
-     * Calcula e formata o tempo de atividade (uptime).
-     * @returns {string} Tempo de atividade formatado.
-     */
-    getUptime() {
-        const elapsedMilliseconds = Date.now() - this.startTime;
-        const seconds = Math.floor(elapsedMilliseconds / 1000);
-        const minutes = Math.floor(seconds / 60);
-        const hours = Math.floor(minutes / 60);
-        const days = Math.floor(hours / 24);
+  let selectedIdx = 0;
 
-        const remainingHours = hours % 24;
-        const remainingMinutes = minutes % 60;
-        const remainingSeconds = seconds % 60;
+  function renderMenu() {
+    docsList.innerHTML = '';
+    DOCS.forEach((doc, idx) => {
+      const li = document.createElement('li');
+      li.textContent = doc.label;
+      li.classList.add('about-doc-link');
+      li.tabIndex = 0;
+      if (idx === selectedIdx) li.classList.add('active');
+      li.setAttribute('role', 'button');
+      li.setAttribute('aria-current', idx === selectedIdx ? 'page' : 'false');
+      li.addEventListener('click', () => selectDoc(idx));
+      li.addEventListener('keydown', (e) => {
+        if (e.key === 'Enter' || e.key === ' ') {
+          e.preventDefault();
+          selectDoc(idx);
+        }
+      });
+      docsList.appendChild(li);
+    });
+  }
 
-        let uptimeString = '';
-        if (days > 0) uptimeString += `${days}d `;
-        if (remainingHours > 0) uptimeString += `${remainingHours}h `;
-        if (remainingMinutes > 0) uptimeString += `${remainingMinutes}m `;
-        uptimeString += `${remainingSeconds}s`;
-
-        return uptimeString.trim();
+  async function loadDoc(doc) {
+    mainContent.innerHTML = '<p>Carregando...</p>';
+    try {
+      const resp = await fetch(DOCS_PATH + doc.file);
+      if (!resp.ok) throw new Error('Erro ao carregar documento');
+      const html = await resp.text();
+      mainContent.innerHTML = html;
+      mainContent.scrollTop = 0;
+    } catch (err) {
+      mainContent.innerHTML = `<p style="color:var(--color-error)">Erro ao carregar: ${doc.label}</p>`;
     }
+  }
 
-    /**
-     * Atualiza o elemento de uptime no DOM.
-     */
-    updateUptime() {
-        if (this.uptimeInfoElement) {
-            this.uptimeInfoElement.textContent = this.getUptime();
-        }
-    }
+  function selectDoc(idx) {
+    selectedIdx = idx;
+    renderMenu();
+    loadDoc(DOCS[selectedIdx]);
+  }
 
-    onRun() {
-        console.log(`[${this.appName} - ${this.instanceId}] AboutApp.onRun() started. DOM should be ready.`);
+  renderMenu();
+  if (DOCS.length > 0) loadDoc(DOCS[0]);
+});
 
-        const shadowRoot = this.appContentRoot.shadowRoot;
-
-        if (!shadowRoot) {
-            console.error(`[${this.appName} - ${this.instanceId}] Erro: Shadow Root não encontrado para o app!`);
-            return;
-        }
-
-        // Obtém referências aos elementos dentro do Shadow DOM
-        this.osNameElement = shadowRoot.querySelector('#osName');
-        this.osVersionElement = shadowRoot.querySelector('#osVersion');
-        this.kernelInfoElement = shadowRoot.querySelector('#kernelInfo');
-        this.uptimeInfoElement = shadowRoot.querySelector('#uptimeInfo');
-        this.developerInfoElement = shadowRoot.querySelector('#developerInfo');
-        this.aboutDescriptionElement = shadowRoot.querySelector('#aboutDescription');
-        this.aboutTitleElement = shadowRoot.querySelector('#aboutTitle');
-        this.aboutIconElement = shadowRoot.querySelector('.about-icon');
-
-        // Atualiza o texto do título e do ícone com base nos dados do appCore
-        if (this.aboutTitleElement) {
-            this.aboutTitleElement.textContent = `Sobre ${this.appCore.app_name}`;
-        }
-        if (this.aboutIconElement) {
-            // O src do ícone no HTML deve ser relativo à pasta do app,
-            // mas aqui podemos usar o icon_url resolvido do appCore se necessário,
-            // embora para o Shadow DOM, o caminho relativo no HTML seja mais comum.
-            // Para este caso, o HTML já usa "about.svg", que é resolvido pelo Shadow DOM.
-            // Se o ícone viesse de um URL externo ou de outro lugar, poderíamos usar:
-            // this.aboutIconElement.src = this.appCore.icon_url;
-        }
-
-
-        // Inicia o intervalo para atualizar o uptime a cada segundo
-        this.uptimeInterval = this.setInterval(this.updateUptime.bind(this), 1000);
-        this.updateUptime(); // Chama uma vez imediatamente para exibir o uptime inicial
-    }
-
-    onCleanup() {
-        console.log(`[${this.appName} - ${this.instanceId}] Método onCleanup() do AboutApp executado.`);
-        if (this.uptimeInterval) {
-            this.clearInterval(this.uptimeInterval); // Limpa o intervalo
-            this.uptimeInterval = null;
-        }
-        // Limpar referências DOM para evitar vazamentos de memória
-        this.osNameElement = null;
-        this.osVersionElement = null;
-        this.kernelInfoElement = null;
-        this.uptimeInfoElement = null;
-        this.developerInfoElement = null;
-        this.aboutDescriptionElement = null;
-        this.aboutTitleElement = null;
-        this.aboutIconElement = null;
-    }
-}
+// Estilo dinâmico para item ativo
+document.addEventListener('DOMContentLoaded', () => {
+  const style = document.createElement('style');
+  style.innerHTML = `.about-doc-link.active { background: var(--color-primary-base); color: var(--color-dark-primary); font-weight: var(--font-weight-semibold); }`;
+  document.head.appendChild(style);
+});

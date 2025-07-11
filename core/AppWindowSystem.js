@@ -1,4 +1,7 @@
-// /core/AppWindowSystem.js - v1.0.24 (Atualizado para usar Shadow DOM)
+// /core/AppWindowSystem.js - v2.1.0 (Com PositionManager integrado)
+
+import { positionManager } from './PositionManager.js';
+import { dragManager } from './DragManager.js';
 
 export class AppWindowSystem {
     constructor(core, desktopElement) { // Renomeado 'desktop' para 'desktopElement' para clareza
@@ -6,6 +9,7 @@ export class AppWindowSystem {
         this.desktopElement = desktopElement; // O elemento principal (div#desktop)
         this.instanceId = core.instanceId;
         this.appName = core.app_name;
+        this.namespace = `app-${core.id}-${core.instanceId}`;
 
         const appData = core.rawData; // Usa appData completo do AppCore
 
@@ -27,11 +31,12 @@ export class AppWindowSystem {
         this.currentY = null;
 
         // Armazenar a posição e tamanho antes de maximizar/minimizar (em pixels)
-        // Converte vw/vh para px para armazenar valores iniciais em pixels
-        this.restoreWidth = this.convertVwVhToPx(this.initialWidth, 'width');
-        this.restoreHeight = this.convertVwVhToPx(this.initialHeight, 'height');
-        this.restoreX = this.convertVwVhToPx(this.initialX, 'width');
-        this.restoreY = this.convertVwVhToPx(this.initialY, 'height');
+        // Usa o PositionManager para obter posições em pixels
+        const pixelPositions = positionManager.getPixelPositions(appData);
+        this.restoreWidth = pixelPositions.width;
+        this.restoreHeight = pixelPositions.height;
+        this.restoreX = pixelPositions.x;
+        this.restoreY = pixelPositions.y;
 
         this.isMaximized = false;
         this.isMinimized = false;
@@ -39,28 +44,45 @@ export class AppWindowSystem {
         // Binds para garantir que 'this' se refira à instância da classe nos event listeners
         this.toggleMaximize = this.toggleMaximize.bind(this);
         this.toggleVisibility = this.toggleVisibility.bind(this);
+        this.namespaceCSS = this.namespaceCSS.bind(this);
 
         this.createWindow();
     }
 
+
+
     /**
-     * Converte valores de vw/vh para pixels.
-     * @param {string} value - O valor CSS (ex: "10vw", "200px").
-     * @param {string} type - 'width' para vw, 'height' para vh.
-     * @returns {number} O valor em pixels.
+     * Aplica namespace CSS ao conteúdo para evitar conflitos.
+     * @param {string} css - CSS original
+     * @returns {string} CSS com namespace aplicado
      */
-    convertVwVhToPx(value, type) {
-        if (typeof value !== 'string') {
-            return parseFloat(value) || 0; // Se já for número, retorna
-        }
-        if (value.endsWith('vw')) {
-            return (parseFloat(value) / 100) * window.innerWidth;
-        } else if (value.endsWith('vh')) {
-            return (parseFloat(value) / 100) * window.innerHeight;
-        } else if (value.endsWith('px')) {
-            return parseFloat(value);
-        }
-        return parseFloat(value) || 0;
+    namespaceCSS(css) {
+        if (!css) return '';
+        
+        // Remove comentários CSS para evitar problemas
+        css = css.replace(/\/\*[\s\S]*?\*\//g, '');
+        
+        // Para apps de system_window, sempre aplica namespace
+        // pois eles precisam de isolamento
+        const globalSelectors = ['html', 'body', ':root', '*', '::before', '::after'];
+        
+        return css.replace(/([^}]*){/g, (match, selector) => {
+            // Se for um seletor global, não aplica namespace
+            if (globalSelectors.some(global => selector.trim().includes(global))) {
+                return match;
+            }
+            
+            // Aplica namespace ao seletor
+            const selectors = selector.split(',').map(s => {
+                s = s.trim();
+                if (s.startsWith('.' + this.namespace)) {
+                    return s; // Já tem namespace
+                }
+                return `.${this.namespace} ${s}`;
+            });
+            
+            return selectors.join(', ') + '{';
+        });
     }
 
     /**
@@ -68,8 +90,9 @@ export class AppWindowSystem {
      */
     async createWindow() {
         this.appWindowElement = document.createElement('div');
-        this.appWindowElement.classList.add('app');
+        this.appWindowElement.classList.add('app', this.namespace);
         this.appWindowElement.id = this.instanceId; // Define o ID da instância na janela
+        this.appWindowElement.dataset.appType = 'system_window';
 
         // Aplica dimensões e posição iniciais em pixels
         this.appWindowElement.style.width = `${this.restoreWidth}px`;
@@ -86,7 +109,19 @@ export class AppWindowSystem {
         appNameSpan.textContent = this.appName; // Usa appName da instância
         topBar.appendChild(appNameSpan);
 
-        this.enableMove(topBar); // Habilita o arrastar na barra de título inteira
+        // Habilita o arrastar na barra de título usando DragManager
+        this.dragCleanup = dragManager.enableDrag(this.appWindowElement, topBar, {
+            onDragStart: () => {
+                // Foca a janela quando começa a arrastar
+                window.appManager.setFirstPlaneApp(this.instanceId);
+            },
+            onDragEnd: () => {
+                // Atualiza posição de restauração
+                const rect = this.appWindowElement.getBoundingClientRect();
+                this.restoreX = rect.left;
+                this.restoreY = rect.top;
+            }
+        });
 
         // Botões de controle (minimizar, maximizar, fechar)
         const minButton = document.createElement('div');
@@ -112,7 +147,13 @@ export class AppWindowSystem {
         closeButton.title = 'Fechar';
         closeButton.addEventListener('click', (e) => {
             e.stopPropagation();
-            window.appManager.removeApp(this.instanceId);
+            console.log(`[AppWindowSystem] Botão fechar clicado para app ${this.appName} (${this.instanceId})`);
+            console.log(`[AppWindowSystem] window.appManager:`, window.appManager);
+            if (window.appManager && typeof window.appManager.removeApp === 'function') {
+                window.appManager.removeApp(this.instanceId);
+            } else {
+                console.error(`[AppWindowSystem] window.appManager não encontrado ou removeApp não é uma função`);
+            }
         });
         topBar.appendChild(closeButton);
 
@@ -123,10 +164,8 @@ export class AppWindowSystem {
         contentDiv.classList.add('app__content');
         this.appWindowElement.appendChild(contentDiv);
 
-        // *** AQUI: Cria o Shadow DOM para isolar o conteúdo do aplicativo ***
-        // Usamos mode: 'open' para permitir que o JavaScript do aplicativo acesse o Shadow DOM.
-        this.shadowRoot = contentDiv.attachShadow({ mode: 'open' });
-        this.appContentRoot = contentDiv; // O elemento host do Shadow DOM
+        // *** NOVA ESTRATÉGIA: Sem Shadow DOM - injeção direta ***
+        this.appContentRoot = contentDiv; // O elemento de conteúdo direto
 
         // Bordas de redimensionamento
         this.createResizeHandles();
@@ -139,11 +178,11 @@ export class AppWindowSystem {
             window.appManager.setFirstPlaneApp(this.instanceId);
         });
 
-        // Carrega o conteúdo HTML e CSS do aplicativo DENTRO do Shadow DOM
+        // Carrega o conteúdo HTML e CSS do aplicativo DENTRO do elemento de conteúdo
         await this.loadAppContent();
 
         // Chama onRun() na instância do aplicativo APÓS o elemento da janela ser anexado ao DOM
-        // e o conteúdo HTML/CSS carregado no Shadow DOM.
+        // e o conteúdo HTML/CSS carregado.
         if (this.core.appInstance && typeof this.core.appInstance.onRun === "function") {
             // Define o appContentRoot na instância do aplicativo para que ele possa acessar seu próprio DOM
             this.core.appInstance.appContentRoot = this.appContentRoot;
@@ -187,7 +226,7 @@ export class AppWindowSystem {
     }
 
     /**
-     * Carrega o conteúdo HTML e CSS do aplicativo no Shadow DOM da janela.
+     * Carrega o conteúdo HTML e CSS do aplicativo no elemento de conteúdo da janela.
      */
     async loadAppContent() {
         // Carrega o HTML do aplicativo
@@ -198,14 +237,14 @@ export class AppWindowSystem {
                     throw new Error(`HTTP error! status: ${htmlResponse.status} for ${this.core.dirApp}`);
                 }
                 const html = await htmlResponse.text();
-                this.shadowRoot.innerHTML = html; // Injeta no Shadow DOM
+                this.appContentRoot.innerHTML = html; // Injeta diretamente no elemento de conteúdo
             } catch (e) {
-                this.shadowRoot.innerHTML = `<p style="color: red; text-align: center; padding-top: 20px;">Erro ao carregar conteúdo HTML: ${e.message}</p>`;
+                this.appContentRoot.innerHTML = `<p style="color: red; text-align: center; padding-top: 20px;">Erro ao carregar conteúdo HTML: ${e.message}</p>`;
                 console.error(`Erro carregando HTML do app ${this.appName}:`, e);
             }
         } else {
             console.warn(`[${this.appName}] Nenhuma URL dirApp fornecida para o conteúdo da janela.`);
-            this.shadowRoot.innerHTML = '<p style="color: white; text-align: center; padding-top: 20px;">Nenhum conteúdo HTML para este aplicativo.</p>';
+            this.appContentRoot.innerHTML = '<p style="color: white; text-align: center; padding-top: 20px;">Nenhum conteúdo HTML para este aplicativo.</p>';
         }
 
         // Carrega o CSS do aplicativo (se styleFile estiver definido)
@@ -216,73 +255,25 @@ export class AppWindowSystem {
                     throw new Error(`HTTP error! status: ${styleResponse.status} for ${this.core.styleFile}`);
                 }
                 const styleText = await styleResponse.text();
+                
+                // Aplica namespace ao CSS
+                const namespacedCSS = this.namespaceCSS(styleText);
+                
+                // Cria elemento de estilo no head do documento
                 const styleElement = document.createElement('style');
-                styleElement.textContent = styleText;
-                // Anexa o estilo ao Shadow DOM, isolando-o à janela
-                this.shadowRoot.appendChild(styleElement);
+                styleElement.id = `style-${this.namespace}`;
+                styleElement.textContent = namespacedCSS;
+                document.head.appendChild(styleElement);
+                
+                console.log(`[AppWindowSystem] CSS carregado e namespaced para ${this.appName}`);
+                
             } catch (e) {
                 console.error(`Erro carregando CSS do app ${this.appName}:`, e);
             }
         }
     }
 
-    /**
-     * Habilita o arrastar da janela (baseado no original).
-     * @param {HTMLElement} headerElement - O elemento que irá iniciar o arrastar (e.g., a barra de título).
-     */
-    enableMove(headerElement) {
-        let initialMouseX = 0, initialMouseY = 0;
-        let initialWindowX = 0, initialWindowY = 0;
 
-        const elmnt = this.appWindowElement; // O elemento da janela a ser arrastado
-
-        const dragMouseDown = (e) => {
-            if (this.isMaximized) return; // Não arrasta se estiver maximizado
-            e.preventDefault(); // Previne seleção de texto e outros comportamentos padrão
-
-            initialMouseX = e.clientX;
-            initialMouseY = e.clientY;
-            initialWindowX = elmnt.offsetLeft;
-            initialWindowY = elmnt.offsetTop;
-
-            document.addEventListener('mousemove', elementDrag);
-            document.addEventListener('mouseup', closeDragElement);
-        };
-
-        const elementDrag = (e) => {
-            if (this.isMaximized) return; // Garante que não arraste se maximizado
-            e.preventDefault(); // Previne seleção de texto durante o movimento
-
-            const dx = e.clientX - initialMouseX;
-            const dy = e.clientY - initialMouseY;
-
-            let newLeft = initialWindowX + dx;
-            let newTop = initialWindowY + dy;
-
-            // Limita a janela aos limites da tela
-            const minX = 0;
-            const minY = 0;
-            const maxX = this.desktopElement.offsetWidth - elmnt.offsetWidth;
-            const maxY = this.desktopElement.offsetHeight - elmnt.offsetHeight;
-
-            newLeft = Math.max(minX, Math.min(newLeft, maxX));
-            newTop = Math.max(minY, Math.min(newTop, maxY));
-
-            elmnt.style.left = `${newLeft}px`;
-            elmnt.style.top = `${newTop}px`;
-
-            // Atualiza as posições de restauração (em string, como no original)
-            this.currentX = elmnt.style.left;
-            this.currentY = elmnt.style.top;
-        };
-
-        const closeDragElement = () => {
-            document.removeEventListener('mousemove', elementDrag);
-            document.removeEventListener('mouseup', closeDragElement);
-        };
-
-        headerElement.addEventListener('mousedown', dragMouseDown);
-    }
 
     // Métodos de redimensionamento (baseados no original)
 
@@ -503,5 +494,28 @@ export class AppWindowSystem {
                 window.appManager.activeAppInstanceId = null;
             }
         }
+    }
+
+    /**
+     * Remove a janela e limpa recursos associados.
+     */
+    remove() {
+        // Limpa o drag se existir
+        if (this.dragCleanup) {
+            this.dragCleanup();
+        }
+        
+        // Remove o elemento da janela
+        if (this.appWindowElement && this.appWindowElement.parentNode) {
+            this.appWindowElement.remove();
+        }
+        
+        // Remove o CSS namespaced
+        const styleElement = document.getElementById(`style-${this.namespace}`);
+        if (styleElement) {
+            styleElement.remove();
+        }
+        
+        console.log(`[AppWindowSystem] Janela '${this.appName}' removida e recursos limpos`);
     }
 }

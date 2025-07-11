@@ -2,16 +2,17 @@
 
 /**
  * Classe base para todos os aplicativos do sistema.
- * Fornece acesso ao AppCore, APIs padrão e ao elemento raiz do conteúdo do aplicativo (host do Shadow DOM).
+ * Fornece acesso ao AppCore, APIs padrão e ao elemento raiz do conteúdo do aplicativo.
  */
 export class BaseApp {
-    /**
+        /**
      * Construtor da BaseApp.
      * @param {AppCore} appCoreInstance - A instância do AppCore associada a este aplicativo.
      * @param {object} standardAPIs - Objeto contendo APIs padrão (setTimeout, setInterval, appManager, etc.).
-     * @param {HTMLElement} [appContentRoot=null] - O elemento host do Shadow DOM onde o conteúdo do app é renderizado.
+     * @param {HTMLElement} [appContentRoot=null] - O elemento raiz onde o conteúdo do app é renderizado.
+     * @param {HTMLElement} [desktopElement=null] - O elemento desktop para referência de posicionamento.
      */
-    constructor(appCoreInstance, standardAPIs, appContentRoot = null) {
+    constructor(appCoreInstance, standardAPIs, appContentRoot = null, desktopElement = null) {
         this.appCore = appCoreInstance;
         this.instanceId = appCoreInstance.instanceId;
         this.appName = appCoreInstance.app_name;
@@ -23,9 +24,12 @@ export class BaseApp {
         this.clearTimeout = standardAPIs.clearTimeout;
         this.clearInterval = standardAPIs.clearInterval;
 
-        // O elemento HTML que hospeda o Shadow DOM do aplicativo.
-        // Os apps que estendem BaseApp devem usar este elemento (ou seu shadowRoot) para consultar o DOM interno.
-        this.appContentRoot = appContentRoot; 
+        // O elemento HTML que contém o conteúdo do aplicativo.
+        // Os apps que estendem BaseApp devem usar este elemento para consultar o DOM interno.
+        this.appContentRoot = appContentRoot;
+        
+        // O elemento desktop para referência de posicionamento e drag and drop
+        this.desktopElement = desktopElement;
     }
 
     /**

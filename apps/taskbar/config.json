@@ -1,0 +1,13 @@
+{
+  "app_name": "Barra de Tarefas",
+  "icon_url": "icon.svg",
+  "dirApp": "index.html",
+  "jsFile": "main.js",
+  "styleFile": "style.css",
+  "mode": "desktop_ui",
+  "autorun": true,
+  "hidden": true,
+  "position": "bottom",
+  "width": "100%",
+  "height": "50px"
+} 

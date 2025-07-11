@@ -1,7 +1,9 @@
 {
   "app_configs": [
     { "id": "terminal", "path": "/apps/terminal/" },
-    { "id": "browser", "path": "/apps/browser/" },
-    { "id": "about", "path": "/apps/about/" }
+    { "id": "about", "path": "/apps/about/" },
+    { "id": "clock", "path": "/apps/clock/" },
+    { "id": "system-info", "path": "/apps/system-info/" },
+    { "id": "taskbar", "path": "/apps/taskbar/" }
   ]
 }

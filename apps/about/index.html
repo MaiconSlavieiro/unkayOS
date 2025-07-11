@@ -1,23 +1,36 @@
-<!-- apps/about/index.html - v1.0.2 -->
-<div id="about-app" class="about-app">
-    <div class="about-header">
-        <!-- O ícone agora será resolvido pelo AppManager com base no icon_url do config.json -->
-        <img src="about.svg" alt="Info Icon" class="about-icon">
-        <h1 class="about-title" id="aboutTitle">Sobre o UnkayOS</h1>
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Sobre o unkayOS</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="about-app-container">
+    <header class="about-header">
+      <img src="/apps/about/icon.svg" alt="Ícone do unkayOS" class="about-icon"/>
+      <div>
+        <h1 class="about-title">Sobre o unkayOS</h1>
+        <span class="about-version">v1.1.0</span>
+      </div>
+    </header>
+    <div class="about-main-area">
+      <aside class="about-menu" aria-label="Menu de Documentação">
+        <h2 class="about-menu-title">Documentação</h2>
+        <ul id="about-docs-list" class="about-docs-list">
+          <!-- Itens de docs inseridos via JS -->
+        </ul>
+      </aside>
+      <main class="about-content" id="about-main-content" tabindex="0">
+        <p>Bem-vindo ao unkayOS!<br>
+        Selecione um documento à esquerda para visualizar informações, changelog ou tutoriais.</p>
+      </main>
     </div>
-    <div class="about-content">
-        <p><span class="label">Sistema Operacional:</span> <span id="osName">UnkayOS</span></p>
-        <p><span class="label">Versão:</span> <span id="osVersion">1.0.0 (Beta)</span></p>
-        <p><span class="label">Kernel:</span> <span id="kernelInfo">JavaScript/HTML/CSS</span></p>
-        <p><span class="label">Uptime:</span> <span id="uptimeInfo">Calculando...</span></p>
-        <p><span class="label">Desenvolvido por:</span> <span id="developerInfo">Seu Nome/Organização</span></p>
-        <p class="about-description" id="aboutDescription">
-            UnkayOS é um sistema operacional web minimalista e modular, projetado para demonstrar
-            conceitos de gerenciamento de janelas, aplicativos e comunicação inter-processos
-            diretamente no navegador.
-        </p>
-    </div>
-    <div class="about-footer">
-        <p>&copy; 2024 UnkayOS. Todos os direitos reservados.</p>
-    </div>
-</div>
+    <footer class="about-footer">
+      <span>unkayOS &copy; 2024 &mdash; <a href="https://github.com/unkayOS" target="_blank" rel="noopener">GitHub</a></span>
+    </footer>
+  </div>
+  <script src="https://cdn.jsdelivr.net/npm/marked/marked.min.js"></script>
+  <script type="module" src="main.js"></script>
+</body>
+</html>

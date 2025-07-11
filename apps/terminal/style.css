@@ -62,8 +62,38 @@
     font-style: italic;
 }
 
-/* Classe auxiliar para erro */
+/* Classes auxiliares para cores */
 .red {
     color: var(--color-error);
+    font-weight: 600;
+}
+
+.green {
+    color: var(--color-success);
+    font-weight: 600;
+}
+
+.yellow {
+    color: var(--color-warning);
+    font-weight: 600;
+}
+
+.blue {
+    color: var(--color-primary-base);
+    font-weight: 600;
+}
+
+.cyan {
+    color: var(--color-info);
+    font-weight: 600;
+}
+
+.purple {
+    color: #9c27b0;
+    font-weight: 600;
+}
+
+.orange {
+    color: #ff9800;
     font-weight: 600;
 }

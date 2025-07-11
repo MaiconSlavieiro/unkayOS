@@ -82,19 +82,51 @@ export const commands = {
 
             // appManager.runningApps é um Map, não um Array. Precisa iterar sobre os valores.
             if (appManager.runningApps && appManager.runningApps.size > 0) {
-                output += '<span class="cyan">--- Aplicativos com UI (system_window/custom_ui) ---</span><br>';
+                // Separa apps por tipo
+                const systemApps = [];
+                const userApps = [];
+                const headlessApps = [];
+
                 for (const [instanceId, appInfo] of appManager.runningApps.entries()) {
-                    if (appInfo.appCoreInstance.mode !== 'headless') {
-                        output += `  PID: ${appInfo.appCoreInstance.instanceId} | Nome: ${appInfo.appCoreInstance.app_name || 'N/A'} | Modo: ${appInfo.appCoreInstance.mode}<br>`;
+                    const app = appInfo.appCoreInstance;
+                    if (app.mode === 'desktop_ui' || app.mode === 'custom_ui') {
+                        systemApps.push({ instanceId, app });
+                    } else if (app.mode === 'system_window') {
+                        userApps.push({ instanceId, app });
+                    } else if (app.mode === 'headless') {
+                        headlessApps.push({ instanceId, app });
                     }
                 }
-                output += '<br>';
-                output += '<span class="cyan">--- Aplicativos Headless ---</span><br>';
-                for (const [instanceId, appInfo] of appManager.runningApps.entries()) {
-                    if (appInfo.appCoreInstance.mode === 'headless') {
-                        output += `  PID: ${appInfo.appCoreInstance.instanceId} | Nome: ${appInfo.appCoreInstance.app_name || 'N/A'} | Modo: ${appInfo.appCoreInstance.mode}<br>`;
+
+                // Apps de Sistema (não podem ser fechados)
+                if (systemApps.length > 0) {
+                    output += '<span class="purple">--- Aplicativos de Sistema (não podem ser fechados) ---</span><br>';
+                    for (const { instanceId, app } of systemApps) {
+                        output += `  PID: ${instanceId} | Nome: ${app.app_name || 'N/A'} | Modo: ${app.mode} | <span class="orange">Sistema</span><br>`;
                     }
+                    output += '<br>';
                 }
+
+                // Apps de Usuário (podem ser fechados)
+                if (userApps.length > 0) {
+                    output += '<span class="cyan">--- Aplicativos de Usuário (podem ser fechados) ---</span><br>';
+                    for (const { instanceId, app } of userApps) {
+                        output += `  PID: ${instanceId} | Nome: ${app.app_name || 'N/A'} | Modo: ${app.mode} | <span class="green">Terminável</span><br>`;
+                    }
+                    output += '<br>';
+                }
+
+                // Apps Headless
+                if (headlessApps.length > 0) {
+                    output += '<span class="cyan">--- Aplicativos Headless ---</span><br>';
+                    for (const { instanceId, app } of headlessApps) {
+                        output += `  PID: ${instanceId} | Nome: ${app.app_name || 'N/A'} | Modo: ${app.mode} | <span class="green">Terminável</span><br>`;
+                    }
+                    output += '<br>';
+                }
+
+                // Resumo
+                output += `<span class="yellow">Resumo:</span> ${systemApps.length} sistema, ${userApps.length} usuário, ${headlessApps.length} headless<br>`;
             } else {
                 output += '  Nenhum aplicativo em execução.<br>';
             }
@@ -140,24 +172,92 @@ export const commands = {
                 return '<span class="red">Uso: stop &lt;instance_id&gt;</span>';
             }
             const instanceId = args[0];
-            appendToTerminal(`<span class="yellow">Parando instância '${instanceId}'...</span>`);
+            
+            // Verifica se o app existe
+            const appInfo = appManager.runningApps.get(instanceId);
+            if (!appInfo) {
+                return `<span class="red">Erro: Instância '${instanceId}' não encontrada.</span>`;
+            }
+            
+            const app = appInfo.appCoreInstance;
+            
+            // Verifica se é um app de sistema (não pode ser fechado)
+            if (app.mode === 'desktop_ui' || app.mode === 'custom_ui') {
+                return `<span class="orange">Erro: Não é possível parar '${app.app_name}' (${app.mode}). Apps de sistema não podem ser fechados.</span>`;
+            }
+            
+            appendToTerminal(`<span class="yellow">Parando instância '${instanceId}' (${app.app_name})...</span>`);
             try {
                 appManager.removeApp(instanceId);
-                return `<span class="green">Instância '${instanceId}' parada com sucesso.</span>`;
+                return `<span class="green">Instância '${instanceId}' (${app.app_name}) parada com sucesso.</span>`;
             } catch (error) {
                 return `<span class="red">Erro ao parar instância '${instanceId}': ${error.message || error}</span>`;
             }
         }
     },
-    killall: {
-        description: "Encerra todos os aplicativos de janela e headless em execução.",
+    "ps-system": {
+        description: "Lista apenas os aplicativos de sistema em execução.",
         action: (args, appendToTerminal, terminalOutput, displayInitialMessages, allCommands, appManager) => {
             if (!appManager) {
                 return '<span class="red">Erro: Gerenciador de aplicativos não disponível.</span>';
             }
-            appendToTerminal('<span class="yellow">Encerrando todos os aplicativos...</span>');
+
+            let output = '<span class="purple">Aplicativos de Sistema em execução:</span><br>';
+
+            const systemApps = [];
+            for (const [instanceId, appInfo] of appManager.runningApps.entries()) {
+                const app = appInfo.appCoreInstance;
+                if (app.mode === 'desktop_ui' || app.mode === 'custom_ui') {
+                    systemApps.push({ instanceId, app });
+                }
+            }
+
+            if (systemApps.length > 0) {
+                for (const { instanceId, app } of systemApps) {
+                    output += `  PID: ${instanceId} | Nome: ${app.app_name || 'N/A'} | Modo: ${app.mode} | <span class="orange">Sistema</span><br>`;
+                }
+                output += `<br><span class="yellow">Total: ${systemApps.length} aplicativo(s) de sistema</span><br>`;
+            } else {
+                output += '  Nenhum aplicativo de sistema em execução.<br>';
+            }
+
+            return output;
+        }
+    },
+    killall: {
+        description: "Encerra todos os aplicativos de usuário e headless em execução (apps de sistema são preservados).",
+        action: (args, appendToTerminal, terminalOutput, displayInitialMessages, allCommands, appManager) => {
+            if (!appManager) {
+                return '<span class="red">Erro: Gerenciador de aplicativos não disponível.</span>';
+            }
+            
+            // Conta quantos apps serão fechados
+            let userAppsCount = 0;
+            let headlessAppsCount = 0;
+            let systemAppsCount = 0;
+            
+            for (const [instanceId, appInfo] of appManager.runningApps.entries()) {
+                const app = appInfo.appCoreInstance;
+                if (app.mode === 'desktop_ui' || app.mode === 'custom_ui') {
+                    systemAppsCount++;
+                } else if (app.mode === 'system_window') {
+                    userAppsCount++;
+                } else if (app.mode === 'headless') {
+                    headlessAppsCount++;
+                }
+            }
+            
+            if (userAppsCount === 0 && headlessAppsCount === 0) {
+                return '<span class="yellow">Nenhum aplicativo de usuário ou headless em execução para encerrar.</span>';
+            }
+            
+            appendToTerminal(`<span class="yellow">Encerrando ${userAppsCount} aplicativo(s) de usuário e ${headlessAppsCount} aplicativo(s) headless...</span>`);
+            if (systemAppsCount > 0) {
+                appendToTerminal(`<span class="purple">Preservando ${systemAppsCount} aplicativo(s) de sistema.</span>`);
+            }
+            
             appManager.killAll();
-            return '<span class="green">Comando killall executado.</span>';
+            return `<span class="green">Comando killall executado. ${userAppsCount + headlessAppsCount} aplicativo(s) encerrado(s).</span>`;
         }
     }
 };

@@ -1,0 +1,14 @@
+{
+  "app_name": "Relógio de Desktop",
+  "icon_url": "icon.svg",
+  "dirApp": "index.html",
+  "jsFile": "main.js",
+  "styleFile": "style.css",
+  "mode": "desktop_ui",
+  "autorun": true,
+  "hidden": true,
+  "right": "20px",
+  "top": "150px",
+  "width": "250px",
+  "height": "120px"
+} 

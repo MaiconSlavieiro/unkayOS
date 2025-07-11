@@ -1,4 +1,4 @@
-// /core/AppCore.js - v1.0.24 (Atualizado para compatibilidade com Shadow DOM)
+// /core/AppCore.js - v1.0.25 (Atualizado para compatibilidade sem Shadow DOM)
 
 import { BaseApp } from './BaseApp.js';
 
@@ -51,13 +51,15 @@ export class AppCore {
         };
 
         // Carrega o módulo JS do aplicativo e instancia a classe BaseApp (ou sua extensão)
-        // A referência ao appContentRoot (host do Shadow DOM) será definida pelo AppWindowSystem
+        // A referência ao appContentRoot será definida pelo AppWindowSystem
         // antes de chamar o onRun() do appInstance.
         if (this.jsFile) {
             try {
+                console.log(`[AppCore] Carregando módulo JS: ${this.jsFile}`);
                 const module = await import(this.jsFile);
                 if (typeof module.default === "function" && module.default.prototype instanceof BaseApp) {
                     this.appInstance = new module.default(this, standardAPIs);
+                    console.log(`[AppCore] Instância do app ${this.app_name} criada com sucesso`);
                 } else {
                     // Para apps que não estendem BaseApp, eles ainda podem ter seu HTML/CSS/JS injetado,
                     // mas não terão acesso às APIs ou ao ciclo de vida onRun/onCleanup.
@@ -73,18 +75,26 @@ export class AppCore {
                 const { AppWindowSystem } = await import('./AppWindowSystem.js');
                 // Passa a instância do AppCore (que contém this.appInstance e os caminhos resolvidos)
                 // e o desktopElement para o AppWindowSystem.
-                // O AppWindowSystem será responsável por criar o Shadow DOM e chamar onRun().
+                // O AppWindowSystem será responsável por criar a janela e chamar onRun().
                 const windowApp = new AppWindowSystem(this, desktopElement);
                 return windowApp;
+            }
+
+            case "desktop_ui": {
+                const { AppCustomUI } = await import('./AppCustomUI.js');
+                // Apps de desktop são parte fundamental do ambiente
+                // Eles iniciam automaticamente e não podem ser fechados
+                const desktopApp = new AppCustomUI(this, desktopElement);
+                await desktopApp.init(); // Inicializa imediatamente
+                return desktopApp;
             }
 
             case "custom_ui": {
                 const { AppCustomUI } = await import('./AppCustomUI.js');
                 const customUIApp = new AppCustomUI(this, desktopElement);
-                // Se AppCustomUI também usa Shadow DOM e chama onRun, ele deve seguir o padrão do AppWindowSystem.
-                // Para este exemplo, assumimos que ele também define appContentRoot e chama onRun.
+                // AppCustomUI define appContentRoot e chama onRun seguindo o padrão do AppWindowSystem.
                 if (this.appInstance && typeof this.appInstance.onRun === "function") {
-                    // Nota: AppCustomUI precisaria definir this.appInstance.appContentRoot antes.
+                    // Nota: AppCustomUI define this.appInstance.appContentRoot antes de chamar onRun.
                     this.appInstance.onRun();
                 }
                 return customUIApp;

@@ -59,11 +59,14 @@ export class AppManager {
      * Inicia os aplicativos marcados como autorun.
      */
     initAutorunApps() {
+        console.log('[AppManager] Iniciando apps com autorun...');
         this.loadedAppDetails.forEach(appData => {
             if (appData.autorun) {
+                console.log(`[AppManager] Iniciando app com autorun: ${appData.app_name} (${appData.mode})`);
                 this.runApp(appData.id);
             }
         });
+        console.log('[AppManager] Apps com autorun iniciados.');
     }
 
     /**
@@ -74,17 +77,20 @@ export class AppManager {
      * @returns {string|null} O instanceId do aplicativo iniciado, ou null se falhar.
      */
     async runApp(appId, terminalOutputCallback = null, appParams = []) {
+        console.log(`[AppManager] Tentando iniciar app: ${appId}`);
         const appData = this.loadedAppDetails.get(appId);
         if (!appData) {
             console.error(`Aplicativo com ID '${appId}' não encontrado ou não carregado.`);
             return null;
         }
+        console.log(`[AppManager] App encontrado: ${appData.app_name} (${appData.mode})`);
 
-        // Para apps custom_ui ou headless, verifica se já está rodando
-        if ((appData.mode === 'custom_ui' || appData.mode === 'headless') && this.isAppRunning(appId)) {
+        // Para apps custom_ui, desktop_ui ou headless, verifica se já está rodando
+        if ((appData.mode === 'custom_ui' || appData.mode === 'desktop_ui' || appData.mode === 'headless') && this.isAppRunning(appId)) {
             console.warn(`Aplicativo '${appId}' (${appData.mode}) já está em execução. Não iniciando nova instância.`);
             return null;
         }
+        console.log(`[AppManager] App ${appData.app_name} não está rodando, prosseguindo com inicialização...`);
 
         const appCoreInstance = new AppCore(appData);
 
@@ -122,9 +128,11 @@ export class AppManager {
     isAppRunning(appId) {
         for (const [instanceId, appInfo] of this.runningApps.entries()) {
             if (appInfo.appCoreInstance.id === appId) {
+                console.log(`[AppManager] App ${appId} já está rodando (instanceId: ${instanceId})`);
                 return true;
             }
         }
+        console.log(`[AppManager] App ${appId} não está rodando`);
         return false;
     }
 
@@ -134,13 +142,21 @@ export class AppManager {
      */
     createIcon(appCoreInstance) {
         if (appCoreInstance.mode !== 'system_window') return;
+        
+        // Se a taskbar ainda não foi inicializada, não cria o ícone
+        if (!this.appsOnToolBarElement) {
+            console.warn(`[AppManager] Taskbar não inicializada. Ícone para ${appCoreInstance.app_name} será criado quando a taskbar estiver pronta.`);
+            return;
+        }
+        
+        console.log(`[AppManager] Criando ícone para ${appCoreInstance.app_name} na taskbar`);
 
         const appIconDiv = document.createElement('div');
-        appIconDiv.classList.add('tool_bar__apps_on__app_icon'); // Este div será o elemento clicável
+        appIconDiv.classList.add('taskbar__apps_on__app_icon'); // Este div será o elemento clicável
         appIconDiv.dataset.instanceId = appCoreInstance.instanceId;
 
         const appIconImg = document.createElement('img');
-        appIconImg.classList.add('tool_bar__apps_on__app_icon__img'); // A imagem dentro do div
+        appIconImg.classList.add('taskbar__apps_on__app_icon__img'); // A imagem dentro do div
         appIconImg.src = appCoreInstance.icon_url; // appCoreInstance.icon_url já é absoluto
 
         appIconDiv.appendChild(appIconImg); // Adiciona a imagem ao div do ícone
@@ -175,6 +191,8 @@ export class AppManager {
         if (appInfo) {
             appInfo.appTaskbarIcon = appIconDiv;
         }
+        
+        console.log(`[AppManager] Ícone criado para ${appCoreInstance.app_name}:`, appIconDiv);
     }
 
     /**
@@ -190,9 +208,11 @@ export class AppManager {
         }
 
         // Remove a classe 'active' de todos os ícones da barra de tarefas
-        this.appsOnToolBarElement.querySelectorAll('.tool_bar__apps_on__app_icon').forEach(icon => {
-            icon.classList.remove('active');
-        });
+        if (this.appsOnToolBarElement) {
+            this.appsOnToolBarElement.querySelectorAll('.taskbar__apps_on__app_icon').forEach(icon => {
+                icon.classList.remove('active');
+            });
+        }
 
         // Remove a classe 'active-app' e reinicia z-index para todas as janelas
         this.desktopElement.querySelectorAll('.app').forEach(appElement => {
@@ -220,26 +240,34 @@ export class AppManager {
      * @param {string} instanceId - O instanceId do aplicativo a ser removido.
      */
     removeApp(instanceId) {
+        console.log(`[AppManager] removeApp chamado para instanceId: ${instanceId}`);
+        console.log(`[AppManager] runningApps:`, this.runningApps);
+        
         const appInfo = this.runningApps.get(instanceId);
         if (!appInfo) {
             console.warn(`Aplicativo com instanceId '${instanceId}' não encontrado para remoção.`);
             return;
         }
 
-        // Apps custom_ui (apps de sistema) não podem ser fechados pelo usuário
-        if (appInfo.appCoreInstance.mode === "custom_ui") {
-            console.warn(`[AppManager] Tentativa de remover aplicativo de sistema (custom_ui) '${appInfo.appCoreInstance.app_name}' (ID: ${instanceId}). Não permitido.`);
+        // Apps custom_ui e desktop_ui (apps de sistema) não podem ser fechados pelo usuário
+        if (appInfo.appCoreInstance.mode === "custom_ui" || appInfo.appCoreInstance.mode === "desktop_ui") {
+            console.warn(`[AppManager] Tentativa de remover aplicativo de sistema (${appInfo.appCoreInstance.mode}) '${appInfo.appCoreInstance.app_name}' (ID: ${instanceId}). Não permitido.`);
             return;
         }
 
         // Chama o método stop() do AppCore para limpeza
         appInfo.appCoreInstance.stop();
 
-        // Se o aplicativo tem uma UI (AppWindowSystem ou AppCustomUI), remove seu elemento DOM
-        if (appInfo.appUIInstance && appInfo.appUIInstance.appWindowElement) { // Para system_window
-            appInfo.appUIInstance.appWindowElement.remove();
-        } else if (appInfo.appUIInstance && appInfo.appUIInstance.appElement) { // Para custom_ui (embora não seja removível por aqui)
-            appInfo.appUIInstance.appElement.remove();
+        // Se o aplicativo tem uma UI, chama o método remove() para limpeza adequada
+        if (appInfo.appUIInstance && typeof appInfo.appUIInstance.remove === 'function') {
+            appInfo.appUIInstance.remove();
+        } else {
+            // Fallback para remoção manual se o método remove() não existir
+            if (appInfo.appUIInstance && appInfo.appUIInstance.appWindowElement) { // Para system_window
+                appInfo.appUIInstance.appWindowElement.remove();
+            } else if (appInfo.appUIInstance && appInfo.appUIInstance.appElement) { // Para custom_ui
+                appInfo.appUIInstance.appElement.remove();
+            }
         }
 
         // Remove o ícone da barra de tarefas, se existir
@@ -259,12 +287,12 @@ export class AppManager {
     }
 
     /**
-     * Encerra todos os aplicativos em execução (exceto custom_ui, que são considerados de sistema).
+     * Encerra todos os aplicativos em execução (exceto custom_ui e desktop_ui, que são considerados de sistema).
      */
     killAll() {
         const instanceIdsToKill = [];
         for (const [instanceId, appInfo] of this.runningApps.entries()) {
-            if (appInfo.appCoreInstance.mode !== 'custom_ui') {
+            if (appInfo.appCoreInstance.mode !== 'custom_ui' && appInfo.appCoreInstance.mode !== 'desktop_ui') {
                 instanceIdsToKill.push(instanceId);
             }
         }
