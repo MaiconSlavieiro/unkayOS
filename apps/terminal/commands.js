@@ -37,7 +37,12 @@ export const commands = {
     whoami: {
         description: "Exibe o usuário atual.",
         action: () => {
-            return 'user@reversodoavesso';
+            const authSystem = window.authSystem?.getAPI();
+            if (authSystem && authSystem.isAuthenticated()) {
+                const user = authSystem.getCurrentUser();
+                return `${user.name || user.username || 'usuário'}@reversodoavesso`;
+            }
+            return 'guest@reversodoavesso';
         }
     },
     neofetch: {
@@ -258,6 +263,80 @@ export const commands = {
             
             appManager.killAll();
             return `<span class="green">Comando killall executado. ${userAppsCount + headlessAppsCount} aplicativo(s) encerrado(s).</span>`;
+        }
+    },
+    login: {
+        description: "Inicia o processo de login SSO.",
+        action: async (args, appendToTerminal, terminalOutput, displayInitialMessages, allCommands, appManager) => {
+            const authSystem = window.authSystem?.getAPI();
+            if (!authSystem) {
+                return '<span class="red">Erro: Sistema de autenticação não disponível.</span>';
+            }
+            
+            if (authSystem.isAuthenticated()) {
+                return '<span class="yellow">Você já está autenticado.</span>';
+            }
+            
+            appendToTerminal('<span class="yellow">Iniciando processo de login SSO...</span>');
+            try {
+                await authSystem.login();
+                return '<span class="green">Redirecionando para autenticação SSO...</span>';
+            } catch (error) {
+                return `<span class="red">Erro ao iniciar login: ${error.message}</span>`;
+            }
+        }
+    },
+    logout: {
+        description: "Realiza logout do sistema.",
+        action: (args, appendToTerminal, terminalOutput, displayInitialMessages, allCommands, appManager) => {
+            const authSystem = window.authSystem?.getAPI();
+            if (!authSystem) {
+                return '<span class="red">Erro: Sistema de autenticação não disponível.</span>';
+            }
+            
+            if (!authSystem.isAuthenticated()) {
+                return '<span class="yellow">Você não está autenticado.</span>';
+            }
+            
+            appendToTerminal('<span class="yellow">Realizando logout...</span>');
+            try {
+                authSystem.logout();
+                return '<span class="green">Logout realizado com sucesso.</span>';
+            } catch (error) {
+                return `<span class="red">Erro ao fazer logout: ${error.message}</span>`;
+            }
+        }
+    },
+    auth: {
+        description: "Exibe informações sobre o status de autenticação.",
+        action: (args, appendToTerminal, terminalOutput, displayInitialMessages, allCommands, appManager) => {
+            const authSystem = window.authSystem?.getAPI();
+            if (!authSystem) {
+                return '<span class="red">Erro: Sistema de autenticação não disponível.</span>';
+            }
+            
+            let output = '<span class="yellow">Status de Autenticação:</span><br>';
+            
+            if (authSystem.isAuthenticated()) {
+                const user = authSystem.getCurrentUser();
+                output += `<span class="green">✓ Autenticado</span><br>`;
+                output += `<span class="cyan">Usuário:</span> ${user.name || user.username || 'N/A'}<br>`;
+                output += `<span class="cyan">Email:</span> ${user.email || 'N/A'}<br>`;
+                output += `<span class="cyan">ID:</span> ${user.sub || user.id || 'N/A'}<br>`;
+                
+                if (user.permissions && user.permissions.length > 0) {
+                    output += `<span class="cyan">Permissões:</span> ${user.permissions.join(', ')}<br>`;
+                }
+                
+                if (user.roles && user.roles.length > 0) {
+                    output += `<span class="cyan">Roles:</span> ${user.roles.join(', ')}<br>`;
+                }
+            } else {
+                output += `<span class="red">✗ Não autenticado</span><br>`;
+                output += 'Use o comando <span class="green">login</span> para autenticar.<br>';
+            }
+            
+            return output;
         }
     }
 };

@@ -1,0 +1,599 @@
+/* apps/browser/style.css - v1.0.1 */
+
+/* Este CSS usará as Custom Properties (variáveis) do Design System.
+   Ele será namespaced pelo AppWindowSystem e injetado no <head> global. */
+
+   .browser-container {
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    width: 100%;
+    background: linear-gradient(135deg, var(--color-secondary-variation-1) 0%, var(--color-primary-variation-1) 100%); /* Gradiente do fundo */
+    color: var(--color-text-on-dark);
+    font-family: var(--font-family-base);
+    box-sizing: border-box;
+    overflow: hidden; /* Para gerenciar o layout interno */
+}
+
+.browser-toolbar {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-xs);
+    background-color: var(--color-dark-primary); /* Cor da barra de ferramentas */
+    border-bottom: 1px solid var(--color-border-dark);
+    gap: var(--spacing-xs);
+    flex-shrink: 0; /* Não permite que a barra de ferramentas encolha */
+}
+
+.browser-btn {
+    background-color: var(--color-secondary-base);
+    color: var(--color-text-on-dark);
+    border: 1px solid var(--color-border-dark);
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    transition: var(--transition-ease);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    font-size: var(--font-size-base);
+    min-width: 30px; /* Para ícones */
+    min-height: 30px; /* Para ícones */
+}
+
+.browser-btn:hover {
+    background-color: var(--color-secondary-variation-1);
+    border-color: var(--color-primary-base);
+}
+
+.browser-btn:active {
+    background-color: var(--color-secondary-variation-2);
+}
+
+.browser-btn.primary {
+    background-color: var(--color-primary-base);
+    border-color: var(--color-primary-base);
+    color: var(--color-text-on-dark);
+}
+
+.browser-btn.primary:hover {
+    background-color: var(--color-primary-variation-1);
+    border-color: var(--color-primary-variation-1);
+}
+
+.browser-btn.primary:active {
+    background-color: var(--color-primary-variation-2);
+    border-color: var(--color-primary-variation-2);
+}
+
+.browser-btn:disabled {
+    opacity: 0.5;
+    cursor: not-allowed;
+    background-color: var(--color-secondary-base);
+    border-color: var(--color-border-dark);
+}
+
+.browser-url-input {
+    flex-grow: 1;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    border: 1px solid var(--color-border-dark);
+    border-radius: var(--border-radius-sm);
+    background-color: var(--color-dark-tertiary);
+    color: var(--color-text-on-dark);
+    font-size: var(--font-size-base);
+    outline: none;
+    transition: border-color var(--transition-ease);
+}
+
+.browser-url-input:focus {
+    border-color: var(--color-primary-base);
+}
+
+.browser-tabs-container {
+    display: flex;
+    background-color: var(--color-dark-secondary); /* Fundo das abas */
+    padding: 0 var(--spacing-xs);
+    border-bottom: 1px solid var(--color-border-dark);
+    overflow-x: auto; /* Permite rolagem horizontal para muitas abas */
+    flex-shrink: 0;
+}
+
+.tab {
+    display: flex;
+    align-items: center;
+    padding: var(--spacing-xs) var(--spacing-sm);
+    margin-right: var(--spacing-xs);
+    background-color: var(--color-dark-primary-middle-opacity);
+    border-top-left-radius: var(--border-radius-sm);
+    border-top-right-radius: var(--border-radius-sm);
+    cursor: pointer;
+    transition: background-color var(--transition-ease);
+    border: 1px solid transparent;
+    border-bottom: none;
+    white-space: nowrap; /* Evita quebra de linha no título da aba */
+    max-width: 150px; /* Limita largura da aba */
+    overflow: hidden;
+    text-overflow: ellipsis; /* Adiciona reticências se o texto for muito longo */
+}
+
+.tab:hover {
+    background-color: var(--color-dark-primary-high-opacity);
+}
+
+.tab.active {
+    background-color: var(--color-background); /* Aba ativa mais clara */
+    border-color: var(--color-border-dark);
+    border-bottom-color: var(--color-background); /* Esconde a borda inferior para parecer conectada ao conteúdo */
+    color: var(--color-primary-base);
+}
+
+.tab-title {
+    flex-grow: 1;
+    margin-right: var(--spacing-xs);
+    overflow: hidden;
+    text-overflow: ellipsis;
+}
+
+.tab-close {
+    background: none;
+    border: none;
+    color: var(--color-text-on-dark);
+    cursor: pointer;
+    padding: var(--spacing-xs);
+    margin-left: auto; /* Empurra para a direita */
+    transition: color var(--transition-ease);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--border-radius-sm);
+}
+
+.tab-close:hover {
+    color: var(--color-error);
+    background-color: var(--color-dark-primary-high-opacity);
+}
+
+.tab-close .theorb-icon {
+    font-size: 16px;
+}
+
+.browser-content-area {
+    flex-grow: 1;
+    background-color: var(--color-background); /* Fundo da área de conteúdo */
+    display: flex;
+    flex-direction: column;
+    overflow: hidden; /* O iframe interno deve gerenciar seu próprio overflow */
+    position: relative; /* Para posicionar o loading indicator */
+}
+
+.browser-iframe {
+    width: 100%;
+    height: 100%;
+    border: none;
+    background-color: white; /* Para evitar fundo transparente antes do carregamento */
+}
+
+/* Estilos para a página de boas-vindas */
+.welcome-page, .error-page, .frame-blocked-page, .blocked-page {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    height: 100%;
+    text-align: center;
+    padding: var(--spacing-lg);
+    background: linear-gradient(135deg, var(--color-secondary-variation-1) 0%, var(--color-primary-variation-1) 100%);
+    color: var(--color-text-on-dark);
+}
+
+/* Ícones nas páginas */
+.welcome-icon, .error-icon, .blocked-icon {
+    margin-bottom: var(--spacing-lg);
+}
+
+
+/* Classe base do TheOrb para ícones */
+.theorb-icon {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    transition: var(--transition-ease);
+    color: inherit;
+    font-size: inherit;
+}
+
+/* Tamanhos de ícones do TheOrb */
+.theorb-icon.xlarge {
+    font-size: 4rem;
+}
+
+.theorb-icon.large {
+    font-size: 2rem;
+}
+
+.theorb-icon.medium {
+    font-size: 1.5rem;
+}
+
+.theorb-icon.small {
+    font-size: 1rem;
+}
+
+/* Animações específicas */
+@keyframes pulse {
+    0%, 100% { transform: scale(1); }
+    50% { transform: scale(1.05); }
+}
+
+@keyframes shake {
+    0%, 100% { transform: translateX(0); }
+    25% { transform: translateX(-2px); }
+    75% { transform: translateX(2px); }
+}
+
+/* Classes próprias do TheOrb para diferentes tipos de ícones */
+
+/* Ícones de navegação (voltar/avançar) */
+.theorb-icon-nav {
+    transform: scale(0.9);
+}
+
+.theorb-icon-nav:hover {
+    transform: scale(1);
+}
+
+/* Ícone de recarregar */
+.theorb-icon-reload:hover {
+    transform: rotate(180deg);
+}
+
+/* Ícone de nova aba */
+.theorb-icon-new-tab {
+    transform: scale(0.95);
+}
+
+.theorb-icon-new-tab:hover {
+    transform: scale(1.1);
+}
+
+/* Ícone de fechar aba */
+.theorb-icon-close {
+    opacity: 0.7;
+}
+
+.theorb-icon-close:hover {
+    opacity: 1;
+    transform: scale(1.1);
+}
+
+/* Ícone de boas-vindas */
+.theorb-icon-welcome {
+    color: var(--color-primary-base);
+    animation: pulse 2s infinite;
+}
+
+/* Ícone de bloqueio */
+.theorb-icon-blocked {
+    color: var(--color-error);
+    animation: shake 0.5s ease-in-out;
+}
+
+/* Ícones de ação em botões */
+.theorb-icon-action:hover {
+    transform: translateY(-1px);
+}
+
+/* Ícones OEmbed */
+.theorb-icon-oembed:hover {
+    transform: scale(1.1);
+}
+
+/* Ícone de erro */
+.theorb-icon-error {
+    color: var(--color-error);
+}
+
+/* Ícones nos botões */
+.browser-btn .theorb-icon,
+.error-btn .theorb-icon,
+.quick-link .theorb-icon {
+    margin-right: var(--spacing-xs);
+}
+
+/* Ícones nos links rápidos */
+.quick-link {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+}
+
+/* Ícones nos botões de erro */
+.error-btn {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    gap: var(--spacing-xs);
+}
+
+.welcome-content, .error-content, .frame-blocked-content, .blocked-content {
+    max-width: 600px;
+    padding: var(--spacing-xl);
+    background-color: var(--color-background);
+    border-radius: var(--border-radius-lg);
+    box-shadow: 0 4px 10px var(--shadow-color);
+}
+
+.welcome-page h1, .error-page h2, .frame-blocked-page h2, .blocked-page h2 {
+    color: var(--color-primary-base);
+    margin-bottom: var(--spacing-md);
+}
+
+.welcome-page p, .error-page p, .frame-blocked-page p, .blocked-page p {
+    margin-bottom: var(--spacing-lg);
+    line-height: var(--line-height-normal);
+}
+
+.quick-links a, .error-actions button, .frame-blocked-actions button, .blocked-actions button {
+    display: inline-block;
+    margin: var(--spacing-xs);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius-md);
+    text-decoration: none;
+    transition: var(--transition-ease);
+    font-weight: var(--font-weight-medium);
+    border: 1px solid transparent;
+}
+
+.quick-links a {
+    background-color: var(--color-primary-base);
+    color: var(--color-text-on-dark);
+}
+
+.quick-links a:hover {
+    background-color: var(--color-primary-variation-1);
+}
+
+.error-actions .error-btn, .frame-blocked-actions .frame-blocked-btn, .blocked-actions .blocked-btn {
+    background-color: var(--color-secondary-base);
+    color: var(--color-text-on-dark);
+    border-color: var(--color-border-dark);
+    cursor: pointer;
+}
+
+.error-actions .error-btn:hover, .frame-blocked-actions .frame-blocked-btn:hover, .blocked-actions .blocked-btn:hover {
+    background-color: var(--color-secondary-variation-1);
+    border-color: var(--color-primary-base);
+}
+
+.frame-blocked-actions .frame-blocked-btn.primary, .blocked-actions .blocked-btn.primary {
+    background-color: var(--color-error); /* Usar cor de erro para "Abrir em Nova Janela" */
+    border-color: var(--color-error);
+    color: var(--color-text-on-dark);
+}
+
+.frame-blocked-actions .frame-blocked-btn.primary:hover, .blocked-actions .blocked-btn.primary:hover {
+    background-color: var(--color-error); /* Ajuste para usar a var */
+    filter: brightness(1.2); /* Escurece um pouco no hover */
+}
+
+.frame-blocked-icon, .warning-icon {
+    font-size: 4rem;
+    margin-bottom: var(--spacing-md);
+}
+
+.frame-blocked-reasons, .frame-blocked-solutions {
+    text-align: left;
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-md);
+    background-color: var(--color-dark-tertiary);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--color-border-dark);
+}
+
+.frame-blocked-reasons h3, .frame-blocked-solutions h3 {
+    color: var(--color-warning);
+    margin-top: 0;
+}
+
+.frame-blocked-reasons ul, .frame-blocked-solutions ul {
+    list-style: disc;
+    margin-left: var(--spacing-lg);
+    padding-left: 0;
+}
+
+.frame-blocked-reasons li, .frame-blocked-solutions li {
+    margin-bottom: var(--spacing-xs);
+}
+
+/* Loading Indicator */
+.loading-indicator {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    background-color: rgba(0, 0, 0, 0.7); /* Fundo semi-transparente */
+    z-index: 10;
+    color: var(--color-primary-base);
+    font-size: var(--font-size-lg);
+}
+
+.loading-spinner {
+    border: 4px solid rgba(255, 255, 255, 0.3);
+    border-top: 4px solid var(--color-primary-base);
+    border-radius: 50%;
+    width: 40px;
+    height: 40px;
+    animation: spin 1s linear infinite;
+    margin-bottom: var(--spacing-sm);
+}
+
+@keyframes spin {
+    0% { transform: rotate(0deg); }
+    100% { transform: rotate(360deg); }
+}
+
+/* OEmbed styles */
+.oembed-page {
+    padding: var(--spacing-md);
+    background: linear-gradient(135deg, var(--color-secondary-variation-1) 0%, var(--color-primary-variation-1) 100%);
+    color: var(--color-text-on-dark);
+    display: flex;
+    flex-direction: column;
+    height: 100%;
+    box-sizing: border-box;
+    overflow-y: auto;
+}
+
+.oembed-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: var(--spacing-md);
+    border-bottom: 1px solid var(--color-border-dark);
+    padding-bottom: var(--spacing-sm);
+}
+
+.oembed-site-info {
+    display: flex;
+    align-items: center;
+}
+
+.oembed-site-name {
+    font-size: var(--font-size-lg);
+    font-weight: var(--font-weight-semibold);
+    color: var(--color-primary-base);
+    margin-right: var(--spacing-xs);
+}
+
+.oembed-badge {
+    background-color: var(--color-success);
+    color: var(--color-text-on-light);
+    padding: 2px 6px;
+    border-radius: var(--border-radius-sm);
+    font-size: var(--font-size-xs);
+    text-transform: uppercase;
+    font-weight: var(--font-weight-bold);
+}
+
+.oembed-actions .oembed-btn {
+    background-color: var(--color-secondary-base);
+    color: var(--color-text-on-dark);
+    border: 1px solid var(--color-border-dark);
+    padding: var(--spacing-xs);
+    border-radius: var(--border-radius-sm);
+    cursor: pointer;
+    transition: var(--transition-ease);
+    margin-left: var(--spacing-xs);
+}
+
+.oembed-actions .oembed-btn:hover {
+    background-color: var(--color-secondary-variation-1);
+    border-color: var(--color-primary-base);
+}
+
+.oembed-content {
+    flex-grow: 1;
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    justify-content: center;
+    padding: var(--spacing-md);
+    background-color: var(--color-surface);
+    border-radius: var(--border-radius-md);
+    text-align: center;
+}
+
+.oembed-video-container {
+    position: relative;
+    width: 100%;
+    padding-bottom: 56.25%; /* 16:9 Aspect Ratio */
+    height: 0;
+    overflow: hidden;
+    margin-bottom: var(--spacing-md);
+}
+
+.oembed-video-container iframe,
+.oembed-video-container object,
+.oembed-video-container embed,
+.oembed-video-container video {
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    border: none;
+}
+
+.oembed-image {
+    max-width: 100%;
+    height: auto;
+    border-radius: var(--border-radius-md);
+    margin-bottom: var(--spacing-md);
+}
+
+.oembed-title {
+    font-size: var(--font-size-xl);
+    color: var(--color-primary-base);
+    margin-bottom: var(--spacing-sm);
+}
+
+.oembed-author {
+    font-size: var(--font-size-base);
+    color: var(--color-text-muted);
+    margin-bottom: var(--spacing-sm);
+}
+
+.oembed-description {
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+    margin-bottom: var(--spacing-md);
+}
+
+.oembed-link-btn {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--spacing-xs);
+    background-color: var(--color-primary-base);
+    color: var(--color-text-on-dark);
+    padding: var(--spacing-sm) var(--spacing-md);
+    border-radius: var(--border-radius-md);
+    text-decoration: none;
+    transition: var(--transition-ease);
+}
+
+.oembed-link-btn:hover {
+    background-color: var(--color-primary-variation-1);
+}
+
+/* Estilos específicos para a página de bloqueio */
+.blocked-message {
+    font-size: var(--font-size-lg);
+    color: var(--color-text-on-dark);
+    margin-bottom: var(--spacing-md);
+}
+
+.blocked-suggestion {
+    font-size: var(--font-size-base);
+    color: var(--color-text-muted);
+    margin-bottom: var(--spacing-lg);
+}
+
+.blocked-info {
+    margin-top: var(--spacing-lg);
+    padding: var(--spacing-md);
+    background-color: var(--color-dark-tertiary);
+    border-radius: var(--border-radius-md);
+    border: 1px solid var(--color-border-dark);
+}
+
+.blocked-info p {
+    margin-bottom: 0;
+    font-size: var(--font-size-sm);
+    color: var(--color-text-muted);
+}

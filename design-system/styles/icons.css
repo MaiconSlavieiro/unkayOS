@@ -1,0 +1,206 @@
+/* Material Icons - Google Fonts */
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons+Outlined');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons+Round');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons+Sharp');
+@import url('https://fonts.googleapis.com/icon?family=Material+Icons+Two+Tone');
+
+/* Classes utilitárias para ícones */
+.material-icons {
+  font-family: 'Material Icons';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px; /* Tamanho padrão */
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  vertical-align: middle;
+}
+
+.material-icons-outlined {
+  font-family: 'Material Icons Outlined';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  vertical-align: middle;
+}
+
+.material-icons-round {
+  font-family: 'Material Icons Round';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  vertical-align: middle;
+}
+
+.material-icons-sharp {
+  font-family: 'Material Icons Sharp';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  vertical-align: middle;
+}
+
+.material-icons-two-tone {
+  font-family: 'Material Icons Two Tone';
+  font-weight: normal;
+  font-style: normal;
+  font-size: 24px;
+  line-height: 1;
+  letter-spacing: normal;
+  text-transform: none;
+  display: inline-block;
+  white-space: nowrap;
+  word-wrap: normal;
+  direction: ltr;
+  -webkit-font-feature-settings: 'liga';
+  -webkit-font-smoothing: antialiased;
+  vertical-align: middle;
+}
+
+/* Tamanhos de ícones */
+.material-icons.small,
+.material-icons-outlined.small,
+.material-icons-round.small,
+.material-icons-sharp.small,
+.material-icons-two-tone.small {
+  font-size: 18px;
+}
+
+.material-icons.medium,
+.material-icons-outlined.medium,
+.material-icons-round.medium,
+.material-icons-sharp.medium,
+.material-icons-two-tone.medium {
+  font-size: 24px;
+}
+
+.material-icons.large,
+.material-icons-outlined.large,
+.material-icons-round.large,
+.material-icons-sharp.large,
+.material-icons-two-tone.large {
+  font-size: 36px;
+}
+
+.material-icons.xlarge,
+.material-icons-outlined.xlarge,
+.material-icons-round.xlarge,
+.material-icons-sharp.xlarge,
+.material-icons-two-tone.xlarge {
+  font-size: 48px;
+}
+
+/* Cores de ícones usando tokens do Design System */
+.material-icons,
+.material-icons-outlined,
+.material-icons-round,
+.material-icons-sharp,
+.material-icons-two-tone {
+  color: var(--color-light-primary);
+}
+
+.material-icons.secondary,
+.material-icons-outlined.secondary,
+.material-icons-round.secondary,
+.material-icons-sharp.secondary,
+.material-icons-two-tone.secondary {
+  color: var(--color-light-secondary);
+}
+
+.material-icons.tertiary,
+.material-icons-outlined.tertiary,
+.material-icons-round.tertiary,
+.material-icons-sharp.tertiary,
+.material-icons-two-tone.tertiary {
+  color: var(--color-light-tertiary);
+}
+
+.material-icons.dark,
+.material-icons-outlined.dark,
+.material-icons-round.dark,
+.material-icons-sharp.dark,
+.material-icons-two-tone.dark {
+  color: var(--color-dark-primary);
+}
+
+/* Ícones clicáveis */
+.material-icons.clickable,
+.material-icons-outlined.clickable,
+.material-icons-round.clickable,
+.material-icons-sharp.clickable,
+.material-icons-two-tone.clickable {
+  cursor: pointer;
+  transition: color 0.2s ease, transform 0.2s ease;
+}
+
+.material-icons.clickable:hover,
+.material-icons-outlined.clickable:hover,
+.material-icons-round.clickable:hover,
+.material-icons-sharp.clickable:hover,
+.material-icons-two-tone.clickable:hover {
+  color: var(--color-light-secondary);
+  transform: scale(1.1);
+}
+
+/* Ícones desabilitados */
+.material-icons.disabled,
+.material-icons-outlined.disabled,
+.material-icons-round.disabled,
+.material-icons-sharp.disabled,
+.material-icons-two-tone.disabled {
+  color: var(--color-light-tertiary);
+  cursor: not-allowed;
+  opacity: 0.5;
+}
+
+/* Ícones em botões */
+.button .material-icons,
+.button .material-icons-outlined,
+.button .material-icons-round,
+.button .material-icons-sharp,
+.button .material-icons-two-tone {
+  margin-right: 8px;
+}
+
+.button .material-icons:last-child,
+.button .material-icons-outlined:last-child,
+.button .material-icons-round:last-child,
+.button .material-icons-sharp:last-child,
+.button .material-icons-two-tone:last-child {
+  margin-right: 0;
+  margin-left: 8px;
+} 

@@ -5,3 +5,6 @@
 @import url("/design-system/styles/base.css");
 @import url("/design-system/styles/typography.css");
 
+/* Ícones Material Design */
+@import url("/design-system/styles/icons.css");
+

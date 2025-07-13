@@ -1,13 +1,30 @@
 // main.js - v1.0.25
 
 import { AppManager } from './core/AppManager.js';
+import { AuthSystem } from './core/AuthSystem.js';
 import { loadJSON } from './core/utils.js';
 
 async function init() {
     const desktop = document.querySelector('#desktop');
-    desktop.style.backgroundImage = 'url(/assets/images/todd-trapani-L2dMFs4fdJg-unsplash.jpg)'; // Caminho absoluto
+    desktop.style.backgroundImage = 'url(/assets/images/wallpaper_01.jpg)'; // Caminho absoluto
 
     try {
+        // Inicializa o sistema de autenticação
+        console.log('[main.js] Inicializando sistema de autenticação...');
+        window.authSystem = new AuthSystem();
+        
+        // Aguarda a inicialização do sistema de autenticação
+        await new Promise(resolve => {
+            const checkAuth = () => {
+                if (window.authSystem) {
+                    resolve();
+                } else {
+                    setTimeout(checkAuth, 100);
+                }
+            };
+            checkAuth();
+        });
+
         const response = await fetch('/apps/apps.json');
         if (!response.ok) {
             throw new Error(`HTTP error! status: ${response.status}`);
@@ -25,6 +42,8 @@ async function init() {
         // Inicia os aplicativos que devem ser auto-executados
         // A taskbar será iniciada automaticamente como um app de desktop
         window.appManager.initAutorunApps(); // Chama o método do AppManager para iniciar autorun
+        
+        console.log('[main.js] Sistema inicializado com sucesso');
         
     } catch (error) {
         console.error('Falha ao carregar apps.json ou inicializar:', error);

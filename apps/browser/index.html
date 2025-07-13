@@ -1,0 +1,35 @@
+<!-- apps/browser/index.html - v1.0.5 -->
+<div id="theorb-app" class="browser-container">
+    <div class="browser-toolbar">
+        <button id="backBtn" class="browser-btn" title="Voltar">
+            <span class="theorb-icon theorb-icon-nav material-icons-outlined small">arrow_back</span>
+        </button>
+        <button id="forwardBtn" class="browser-btn" title="Avançar">
+            <span class="theorb-icon theorb-icon-nav material-icons-outlined small">arrow_forward</span>
+        </button>
+        <button id="reloadBtn" class="browser-btn" title="Recarregar">
+            <span class="theorb-icon theorb-icon-reload material-icons-outlined small">refresh</span>
+        </button>
+        <button id="homeBtn" class="browser-btn" title="Página Inicial">
+            <span class="theorb-icon material-icons-outlined small">home</span>
+        </button>
+        <input type="text" id="urlInput" class="browser-url-input" placeholder="Digite uma URL ou pesquisa...">
+        <button id="goBtn" class="browser-btn primary" title="Ir">
+            <span class="theorb-icon material-icons-outlined small">navigate_next</span>
+        </button>
+        <button id="newTabBtn" class="browser-btn" title="Nova Aba">
+            <span class="theorb-icon theorb-icon-new-tab material-icons-outlined small">add</span>
+        </button>
+        <button id="bookmarksBtn" class="browser-btn" title="Favoritos">
+            <span class="theorb-icon material-icons-outlined small">bookmark</span>
+        </button>
+    </div>
+
+    <div id="tabsContainer" class="browser-tabs-container">
+        <!-- Abas serão injetadas aqui pelo JS -->
+    </div>
+
+    <div id="contentArea" class="browser-content-area">
+        <!-- Conteúdo da página (iframe ou oEmbed) será injetado aqui -->
+    </div>
+</div>

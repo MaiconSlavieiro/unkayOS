@@ -1,0 +1,16 @@
+{
+    "app_name": "TheOrb",
+    "icon_url": "icon.svg",
+    "dirApp": "index.html",    
+    "jsFile": "main.js",      
+    "styleFile": "style.css", 
+    "mode": "system_window",
+    "width": "1000px",
+    "height": "700px",
+    "x_position": "5vw",
+    "y_position": "5vh",
+    "min_width": 400,
+    "min_height": 300,
+    "autorun": false,
+    "hidden": false
+} 
