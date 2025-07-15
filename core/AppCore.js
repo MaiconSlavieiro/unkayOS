@@ -1,11 +1,12 @@
 // /core/AppCore.js - v1.0.25 (Atualizado para compatibilidade sem Shadow DOM)
 
 import { BaseApp } from './BaseApp.js';
+import { generateUniqueId } from './utils/generateUniqueId.js';
 
 export class AppCore {
     constructor(appData) { // Agora recebe appData já resolvido
-        this.id = appData.id || Math.floor(Math.random() * 65536);
-        this.instanceId = `${this.id}-${Math.floor(Math.random() * 65536)}`;
+        this.id = appData.id || generateUniqueId();
+        this.instanceId = `${this.id}-${generateUniqueId()}`;
         this.app_name = appData.app_name || this.instanceId;
 
         this.icon_url = appData.icon_url || "/assets/icons/apps/generic_app_icon.svg";

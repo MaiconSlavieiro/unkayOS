@@ -96,7 +96,9 @@ export default class TerminalApp extends BaseApp {
 
         console.log(`[${this.appName}] Processando comando: "${commandLine}"`);
 
-        this.writeLine(`<span class="terminal-prompt">user@reversodoavesso:~$</span> ${commandLine}`, 'input');
+        const user = authSystem.getAPI().getUserPrompt();
+
+        this.writeLine(`<span class="terminal-prompt">${user}:~$</span> ${commandLine}`, 'input');
         this.commandHistory.unshift(commandLine); // Adiciona ao início do histórico
         this.historyIndex = -1; // Reseta o índice do histórico
 
@@ -163,6 +165,24 @@ export default class TerminalApp extends BaseApp {
         this.terminalInputLine = this.appContentRoot.querySelector('.terminal-input-line');
         this.terminalPromptElement = this.appContentRoot.querySelector('#terminalPrompt');
 
+        // Atualiza o prompt dinamicamente com o valor do AuthSystem
+        if (this.terminalPromptElement) {
+            const promptText = authSystem.getAPI().getUserPrompt();
+            this.terminalPromptElement.textContent = `${promptText}:~$`;
+        }
+
+        // Listener para mudanças de autenticação
+        const api = authSystem.getAPI();
+        if (api && typeof api.on === 'function') {
+            this._authChangeHandler = () => {
+                if (this.terminalPromptElement) {
+                    const promptText = api.getUserPrompt();
+                    this.terminalPromptElement.textContent = `${promptText}:~$`;
+                }
+            };
+            api.on('change', this._authChangeHandler);
+        }
+
         if (!this.terminalAppElement || !this.terminalOutputElement || !this.inputElement || !this.terminalInputLine || !this.terminalPromptElement) {
             console.error(`[${this.appName} - ${this.instanceId}] Erro: Um ou mais elementos do terminal não foram encontrados!`);
             console.error('Elementos encontrados:', {
@@ -199,7 +219,7 @@ export default class TerminalApp extends BaseApp {
      */
     handleKeydown(event) {
         console.log(`[${this.appName}] Tecla pressionada: ${event.key}`);
-        
+
         if (event.key === 'Enter') {
             const command = this.inputElement.value;
             console.log(`[${this.appName}] Comando digitado: "${command}"`);
@@ -243,5 +263,11 @@ export default class TerminalApp extends BaseApp {
         this.commandHistory = [];
         this.historyIndex = -1;
         this.commands = {}; // Limpar comandos também
+
+        // Remove listener de mudança de autenticação
+        const api = authSystem.getAPI();
+        if (api && typeof api.off === 'function' && this._authChangeHandler) {
+            api.off('change', this._authChangeHandler);
+        }
     }
 }

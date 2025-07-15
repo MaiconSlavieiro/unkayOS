@@ -1,41 +1,8 @@
 // /core/AuthSystem.js - Sistema de Autenticação unkayOS
 
-import { getAuthConfig, validateAuthConfig, AUTHENTIK_ENDPOINTS } from './auth-config.js';
+import { AUTHENTIK_ENDPOINTS, getAuthConfig, validateAuthConfig } from './configs/auth-config.js';
+import { generateCodeVerifier, generateCodeChallenge } from './utils/generateCodeVerifier.js';
 
-// Funções auxiliares PKCE (fora da classe)
-function dec2hex(dec) {
-    return ('0' + dec.toString(16)).substr(-2);
-}
-
-function generateCodeVerifier() {
-    const array = new Uint32Array(56 / 2);
-    window.crypto.getRandomValues(array);
-    return Array.from(array, dec2hex).join('');
-}
-
-function sha256(plain) {
-    const encoder = new TextEncoder();
-    const data = encoder.encode(plain);
-    return window.crypto.subtle.digest('SHA-256', data);
-}
-
-function base64urlencode(a) {
-    let str = "";
-    const bytes = new Uint8Array(a);
-    const len = bytes.byteLength;
-    for (let i = 0; i < len; i++) {
-        str += String.fromCharCode(bytes[i]);
-    }
-    return btoa(str)
-        .replace(/\+/g, "-")
-        .replace(/\//g, "_")
-        .replace(/=+$/, "");
-}
-
-async function generateCodeChallenge(verifier) {
-    const hashed = await sha256(verifier);
-    return base64urlencode(hashed);
-}
 
 /**
  * Sistema de Autenticação unkayOS
@@ -175,6 +142,8 @@ export class AuthSystem {
                 
                 // Emite evento de login
                 this.emit('login', this.currentUser);
+                // Emite evento de mudança de estado
+                this.emit('change', this.currentUser);
                 
                 console.log('[AuthSystem] Login realizado com sucesso:', this.currentUser);
                 return true;
@@ -326,6 +295,8 @@ export class AuthSystem {
         
         this.clearStoredTokens();
         this.emit('logout');
+        // Emite evento de mudança de estado
+        this.emit('change', null);
         
         console.log('[AuthSystem] Logout realizado');
     }
@@ -449,6 +420,15 @@ export class AuthSystem {
             isAuthenticated: () => this.isAuthenticated,
             getCurrentUser: () => this.currentUser,
             
+            // Novo método para obter o prompt do usuário
+            getUserPrompt: () => {
+                if (this.isAuthenticated && this.currentUser) {
+                    const user = this.currentUser;
+                    return `${user.preferred_username || user.nickname || 'usuário'}@reversodoavesso`;
+                }
+                return 'guest@reversodoavesso';
+            },
+
             // Ações de autenticação
             login: () => this.login(),
             logout: () => this.logout(),

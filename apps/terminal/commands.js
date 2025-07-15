@@ -37,12 +37,7 @@ export const commands = {
     whoami: {
         description: "Exibe o usuário atual.",
         action: () => {
-            const authSystem = window.authSystem?.getAPI();
-            if (authSystem && authSystem.isAuthenticated()) {
-                const user = authSystem.getCurrentUser();
-                return `${user.name || user.username || 'usuário'}@reversodoavesso`;
-            }
-            return 'guest@reversodoavesso';
+            return authSystem.getAPI().getUserPrompt()
         }
     },
     neofetch: {

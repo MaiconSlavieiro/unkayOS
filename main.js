@@ -2,7 +2,6 @@
 
 import { AppManager } from './core/AppManager.js';
 import { AuthSystem } from './core/AuthSystem.js';
-import { loadJSON } from './core/utils.js';
 
 async function init() {
     const desktop = document.querySelector('#desktop');
