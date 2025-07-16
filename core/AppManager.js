@@ -1,14 +1,34 @@
 // /core/AppManager.js - v1.0.25 (Atualizado para resolver icon_url)
 
 import { AppCore } from './AppCore.js';
-import { BaseApp } from './BaseApp.js'; // Importa BaseApp para a verificação de instância
+import { BaseApp } from './BaseApp.js';
+import eventBus from './eventBus.js'; // Importa o eventBus para Pub/Sub
 
 /**
  * Gerencia todas as instâncias de aplicativos em execução no sistema.
  * Responsável por iniciar, parar e manter o estado dos aplicativos.
  */
 export class AppManager {
+    /**
+     * Atualiza todos os ícones da taskbar para refletir o estado real das janelas.
+     */
+    updateAllTaskbarIcons() {
+        for (const [id, appInfo] of this.runningApps.entries()) {
+            if (!appInfo.appUIInstance || appInfo.appCoreInstance.mode !== 'system_window') continue;
+            let state = 'normal';
+            if (id === this.activeAppInstanceId) {
+                state = appInfo.appUIInstance.isMaximized ? 'maximized' : 'active';
+            } else if (appInfo.appUIInstance.isMinimized) {
+                state = 'minimized';
+            } else if (appInfo.appUIInstance.isMaximized) {
+                state = 'maximized';
+            }
+            eventBus.emit('app:icon:update', { instanceId: id, state });
+        }
+    }
     constructor(desktopElement, appsOnToolBarElement, appConfigs) {
+        this.focusHistory = []; // Histórico de foco (ordem LRU)
+
         this.desktopElement = desktopElement;
         this.appsOnToolBarElement = appsOnToolBarElement;
         this.baseAppConfigs = appConfigs; // Lista de {id, path} do apps.json
@@ -19,7 +39,7 @@ export class AppManager {
 
         this.initialZIndex = 100;
 
-        window.appManager = this; // Garante acesso global
+        this.registerEventBusListeners(); // Garante que listeners sejam registrados ao carregar configs
     }
 
     /**
@@ -53,6 +73,140 @@ export class AppManager {
             }
         });
         await Promise.all(loadPromises);
+        // Exponibiliza a lista detalhada de apps para módulos desacoplados (ex: menuApps)
+        window.loadedAppDetails = this.loadedAppDetails;
+    }
+
+    /**
+     * Registra listeners do eventBus para start/stop de apps.
+     */
+    registerEventBusListeners() {
+        eventBus.on('app:start', ({ appId, params }) => {
+            this.runApp(appId, params);
+        });
+        eventBus.on('app:stop', ({ instanceId }) => {
+            this.stopApp(instanceId);
+        });
+        eventBus.on('app:taskbar:icon:clicked', ({ instanceId }) => {
+            this.handleTaskbarIconClick(instanceId);
+        });
+        // NOVO: gerenciamento de janela via eventBus
+        eventBus.on('window:focus', ({ instanceId }) => {
+            this.setFirstPlaneApp(instanceId);
+        });
+        eventBus.on('window:minimize', ({ instanceId }) => {
+            const appInfo = this.runningApps.get(instanceId);
+            if (appInfo && appInfo.appUIInstance) {
+                appInfo.appUIInstance.isMinimized = true;
+                // Oculta a janela
+                const win = appInfo.appUIInstance.appWindowElement;
+                if (win) win.style.display = 'none';
+                this.updateAllTaskbarIcons();
+                // Remove do histórico
+                this.focusHistory = this.focusHistory.filter(id => id !== instanceId);
+                // Busca próxima janela não minimizada no histórico
+                let nextActive = this.focusHistory.find(id => {
+                    const info = this.runningApps.get(id);
+                    return info && info.appUIInstance && !info.appUIInstance.isMinimized && info.appCoreInstance.mode === 'system_window';
+                });
+                if (nextActive) {
+                    this.setFirstPlaneApp(nextActive);
+                } else {
+                    this.activeAppInstanceId = null;
+                    this.updateAllTaskbarIcons();
+                }
+            }
+        });
+        eventBus.on('window:restore', ({ instanceId }) => {
+            const appInfo = this.runningApps.get(instanceId);
+            if (appInfo && appInfo.appUIInstance) {
+                appInfo.appUIInstance.isMinimized = false;
+                this.setFirstPlaneApp(instanceId);
+            }
+        });
+        eventBus.on('window:maximize', ({ instanceId }) => {
+            const appInfo = this.runningApps.get(instanceId);
+            if (appInfo && appInfo.appUIInstance) {
+                appInfo.appUIInstance.isMaximized = true;
+                // Salva posição/tamanho atuais
+                const win = appInfo.appUIInstance.appWindowElement;
+                if (win) {
+                    appInfo._restoreWin = {
+                        width: win.style.width,
+                        height: win.style.height,
+                        left: win.style.left,
+                        top: win.style.top
+                    };
+                    win.style.left = '0px';
+                    win.style.top = '0px';
+                    win.style.width = this.desktopElement.offsetWidth + 'px';
+                    win.style.height = this.desktopElement.offsetHeight + 'px';
+                    win.classList.add('maximized');
+                }
+                this.setFirstPlaneApp(instanceId);
+            }
+        });
+        eventBus.on('window:unmaximize', ({ instanceId }) => {
+            const appInfo = this.runningApps.get(instanceId);
+            if (appInfo && appInfo.appUIInstance) {
+                appInfo.appUIInstance.isMaximized = false;
+                // Restaura posição/tamanho salvos
+                const win = appInfo.appUIInstance.appWindowElement;
+                if (win && appInfo._restoreWin) {
+                    win.style.width = appInfo._restoreWin.width;
+                    win.style.height = appInfo._restoreWin.height;
+                    win.style.left = appInfo._restoreWin.left;
+                    win.style.top = appInfo._restoreWin.top;
+                    win.classList.remove('maximized');
+                }
+                this.setFirstPlaneApp(instanceId);
+            }
+        });
+        // Handler central de clique na taskbar
+        eventBus.on('window:toggle', ({ instanceId }) => {
+            const appInfo = this.runningApps.get(instanceId);
+            if (!appInfo || !appInfo.appUIInstance) return;
+            // Se minimizada, restaurar e focar
+            if (appInfo.appUIInstance.isMinimized) {
+                appInfo.appUIInstance.isMinimized = false;
+                this.setFirstPlaneApp(instanceId);
+            } else if (this.activeAppInstanceId === instanceId) {
+                // Se já está ativa, minimizar
+                appInfo.appUIInstance.isMinimized = true;
+                this.updateAllTaskbarIcons();
+            } else {
+                // Se está aberta mas não ativa, focar
+                this.setFirstPlaneApp(instanceId);
+            }
+        });
+        // Novo: fechar app via evento
+        eventBus.on('window:close', ({ instanceId }) => {
+            this.stopApp(instanceId);
+        });
+    }
+
+    /**
+     * Ativa ou minimiza o app ao clicar no ícone da taskbar (eventBus-driven)
+     */
+    handleTaskbarIconClick(instanceId) {
+        const appInfo = this.runningApps.get(instanceId);
+        if (!appInfo || !appInfo.appUIInstance) return;
+
+        if (appInfo.appUIInstance.isMinimized) {
+            // Se o app está minimizado, restaura e traz para o primeiro plano
+            appInfo.appUIInstance.toggleVisibility();
+            eventBus.emit('app:icon:update', { instanceId, state: 'active' });
+            this.setFirstPlaneApp(instanceId);
+        } else if (this.activeAppInstanceId === instanceId) {
+            // Se o app é o ativo, minimiza
+            appInfo.appUIInstance.toggleVisibility();
+            eventBus.emit('app:icon:update', { instanceId, state: 'minimized' });
+        } else {
+            // Se o app não está minimizado e não é o ativo, traz para o primeiro plano
+            this.setFirstPlaneApp(instanceId);
+            eventBus.emit('app:icon:update', { instanceId, state: 'active' });
+        }
+    
     }
 
     /**
@@ -72,23 +226,27 @@ export class AppManager {
     /**
      * Inicia um aplicativo pelo seu ID.
      * @param {string} appId - O ID do aplicativo a ser iniciado (conforme apps.json).
-     * @param {function} [terminalOutputCallback=null] - Função de callback para enviar output para o terminal.
      * @param {Array<string>} [appParams=[]] - Parâmetros a serem passados ao iniciar o app.
      * @returns {string|null} O instanceId do aplicativo iniciado, ou null se falhar.
      */
-    async runApp(appId, terminalOutputCallback = null, appParams = []) {
+    async runApp(appId, appParams = []) {
+        // Emite evento de tentativa de start
+        eventBus.emit('app:starting', { appId, params: appParams });
+
         console.log(`[AppManager] Tentando iniciar app: ${appId}`);
         const appData = this.loadedAppDetails.get(appId);
         if (!appData) {
-            console.error(`Aplicativo com ID '${appId}' não encontrado ou não carregado.`);
-            return null;
+            console.error(`[AppManager] App '${appId}' não encontrado nas configs carregadas.`);
+            eventBus.emit('app:start:error', { appId, reason: 'not_found' });
+            return;
         }
         console.log(`[AppManager] App encontrado: ${appData.app_name} (${appData.mode})`);
 
         // Para apps custom_ui, desktop_ui ou headless, verifica se já está rodando
         if ((appData.mode === 'custom_ui' || appData.mode === 'desktop_ui' || appData.mode === 'headless') && this.isAppRunning(appId)) {
             console.warn(`Aplicativo '${appId}' (${appData.mode}) já está em execução. Não iniciando nova instância.`);
-            return null;
+            eventBus.emit('app:start:error', { appId, reason: 'already_running' });
+            return;
         }
         console.log(`[AppManager] App ${appData.app_name} não está rodando, prosseguindo com inicialização...`);
 
@@ -96,7 +254,7 @@ export class AppManager {
 
         try {
             // Passa o desktopElement (agora 'screenElement' no AppWindowSystem)
-            const appUIInstance = await appCoreInstance.run(this.desktopElement, terminalOutputCallback, appParams);
+            const appUIInstance = await appCoreInstance.run(this.desktopElement, null, appParams);
 
             this.runningApps.set(appCoreInstance.instanceId, {
                 appCoreInstance: appCoreInstance,
@@ -106,15 +264,18 @@ export class AppManager {
 
             if (appData.mode === 'system_window' && appUIInstance) {
                 this.createIcon(appCoreInstance);
-                this.setFirstPlaneApp(appCoreInstance.instanceId);
+                // Emite evento para garantir que o app recém-iniciado seja focado corretamente
+                eventBus.emit('window:focus', { instanceId: appCoreInstance.instanceId });
             }
 
             console.log(`Aplicativo '${appData.app_name}' (instanceId: ${appCoreInstance.instanceId}) iniciado no modo: ${appData.mode}`);
+            eventBus.emit('app:started', { appId, instanceId: appCoreInstance.instanceId });
             return appCoreInstance.instanceId;
 
         }
         catch (error) {
             console.error(`Erro ao iniciar o aplicativo '${appData.app_name}' (ID: ${appId}):`, error);
+            eventBus.emit('app:start:error', { appId, reason: 'error' });
             this.runningApps.delete(appCoreInstance.instanceId);
             return null;
         }
@@ -200,58 +361,76 @@ export class AppManager {
      * @param {string} instanceId - O instanceId do aplicativo a ser ativado.
      */
     setFirstPlaneApp(instanceId) {
-        const appInfoToActivate = this.runningApps.get(instanceId);
+        console.log('[AppManager] Foco para:', instanceId);
+        // Atualiza histórico de foco
+        this.focusHistory = this.focusHistory.filter(id => id !== instanceId);
+        this.focusHistory.unshift(instanceId);
 
-        if (!appInfoToActivate || !appInfoToActivate.appUIInstance || appInfoToActivate.appCoreInstance.mode !== 'system_window') {
-            console.warn(`Tentativa de ativar app não-janela ou inexistente: ${instanceId}`);
-            return;
-        }
+        // Centraliza atualização de estado e DOM de todas as janelas
+        let zIndex = this.initialZIndex;
+        for (const [id, appInfo] of this.runningApps.entries()) {
+            if (!appInfo.appUIInstance || appInfo.appCoreInstance.mode !== 'system_window') continue;
+            const win = appInfo.appUIInstance.appWindowElement;
+            if (!win) continue;
 
-        // Remove a classe 'active' de todos os ícones da barra de tarefas
-        if (this.appsOnToolBarElement) {
-            this.appsOnToolBarElement.querySelectorAll('.taskbar__apps_on__app_icon').forEach(icon => {
-                icon.classList.remove('active');
-            });
-        }
-
-        // Remove a classe 'active-app' e reinicia z-index para todas as janelas
-        this.desktopElement.querySelectorAll('.app').forEach(appElement => {
-            appElement.classList.remove('active-app');
-            appElement.style.zIndex = this.initialZIndex;
-        });
-
-        // Define o novo aplicativo ativo
-        this.activeAppInstanceId = instanceId;
-        const appWindowElement = appInfoToActivate.appUIInstance.appWindowElement;
-
-        if (appWindowElement) {
-            appWindowElement.classList.add('active-app');
-            appWindowElement.style.zIndex = this.initialZIndex + 1;
-
-            // Ativa o ícone correspondente na barra de tarefas
-            if (appInfoToActivate.appTaskbarIcon) {
-                appInfoToActivate.appTaskbarIcon.classList.add('active');
+            if (id === instanceId) {
+                // Ativa: mostra, z-index alto, classe active, estado visual correto
+                win.style.display = '';
+                win.classList.add('active-app');
+                win.style.zIndex = this.initialZIndex + 100;
+                if (appInfo.appUIInstance.isMaximized) {
+                    win.classList.add('maximized');
+                } else {
+                    win.classList.remove('maximized');
+                }
+                if (appInfo.appUIInstance.isMinimized) {
+                    appInfo.appUIInstance.isMinimized = false;
+                }
+                eventBus.emit('app:icon:update', { instanceId: id, state: appInfo.appUIInstance.isMaximized ? 'maximized' : 'active' });
+            } else {
+                // Não ativa: tira active, z-index baixo, mostra/oculta conforme estado
+                win.classList.remove('active-app');
+                win.style.zIndex = zIndex;
+                if (appInfo.appUIInstance.isMinimized) {
+                    win.style.display = 'none';
+                    eventBus.emit('app:icon:update', { instanceId: id, state: 'minimized' });
+                } else if (appInfo.appUIInstance.isMaximized) {
+                    win.style.display = '';
+                    win.classList.add('maximized');
+                    eventBus.emit('app:icon:update', { instanceId: id, state: 'maximized' });
+                } else {
+                    win.style.display = '';
+                    win.classList.remove('maximized');
+                    eventBus.emit('app:icon:update', { instanceId: id, state: 'normal' });
+                }
+                zIndex++;
             }
         }
+        // Define o novo aplicativo ativo
+        this.activeAppInstanceId = instanceId;
     }
 
     /**
      * Remove um aplicativo em execução pelo seu instanceId.
      * @param {string} instanceId - O instanceId do aplicativo a ser removido.
      */
-    removeApp(instanceId) {
+    stopApp(instanceId) {
+        // Emite evento de tentativa de stop
+        eventBus.emit('app:stopping', { instanceId });
         console.log(`[AppManager] removeApp chamado para instanceId: ${instanceId}`);
         console.log(`[AppManager] runningApps:`, this.runningApps);
         
         const appInfo = this.runningApps.get(instanceId);
         if (!appInfo) {
             console.warn(`Aplicativo com instanceId '${instanceId}' não encontrado para remoção.`);
+            eventBus.emit('app:stop:error', { instanceId, reason: 'not_found' });
             return;
         }
 
         // Apps custom_ui e desktop_ui (apps de sistema) não podem ser fechados pelo usuário
         if (appInfo.appCoreInstance.mode === "custom_ui" || appInfo.appCoreInstance.mode === "desktop_ui") {
             console.warn(`[AppManager] Tentativa de remover aplicativo de sistema (${appInfo.appCoreInstance.mode}) '${appInfo.appCoreInstance.app_name}' (ID: ${instanceId}). Não permitido.`);
+            eventBus.emit('app:stop:error', { instanceId, reason: 'system_app' });
             return;
         }
 
@@ -283,6 +462,7 @@ export class AppManager {
             this.activeAppInstanceId = null;
         }
 
+        eventBus.emit('app:stopped', { instanceId });
         console.log(`Aplicativo (instanceId: ${instanceId}) removido.`);
     }
 

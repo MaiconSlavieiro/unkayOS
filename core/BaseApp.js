@@ -18,7 +18,7 @@ export class BaseApp {
         this.appName = appCoreInstance.app_name;
         
         // APIs padrão fornecidas pelo sistema
-        this.appManager = standardAPIs.appManager;
+        // this.appManager = standardAPIs.appManager; // Use eventBus para comunicação entre apps e sistema
         this.setTimeout = standardAPIs.setTimeout;
         this.setInterval = standardAPIs.setInterval;
         this.clearTimeout = standardAPIs.clearTimeout;

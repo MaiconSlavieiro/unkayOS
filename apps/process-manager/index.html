@@ -1,0 +1,34 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+  <meta charset="UTF-8">
+  <title>Gerenciador de Processos</title>
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <div class="process-manager-app">
+    <header>
+      <h2>Gerenciador de Processos</h2>
+      <button id="refreshBtn" title="Atualizar lista"></button>
+    </header>
+    <main>
+      <table id="processTable">
+        <thead>
+          <tr>
+            <th>App</th>
+            <th>Tipo</th>
+            <th>Instance ID</th>
+            <th>Status</th>
+            <th>Ação</th>
+          </tr>
+        </thead>
+        <tbody>
+          <!-- Processos serão inseridos aqui -->
+        </tbody>
+      </table>
+      <div id="emptyMsg" class="empty-msg">Nenhum processo em execução.</div>
+    </main>
+  </div>
+  <script type="module" src="main.js"></script>
+</body>
+</html>

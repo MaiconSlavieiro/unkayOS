@@ -1,8 +1,9 @@
 // apps/terminal/main.js - v2.0.0 (Refatorado sem Shadow DOM)
 
 // Importe a classe BaseApp
-import { BaseApp } from '../../core/BaseApp.js'; // Ajuste o caminho conforme a sua estrutura de pastas
-import { commands } from './commands.js'; // Mantenha a importação dos comandos
+import { BaseApp } from '../../core/BaseApp.js';
+import { commands } from './commands.js';
+import eventBus from '../../core/eventBus.js';
 
 /**
  * Classe para o aplicativo Terminal, estendendo BaseApp.
@@ -48,7 +49,16 @@ export default class TerminalApp extends BaseApp {
      * @param {string} description - Descrição do comando.
      */
     registerCommand(name, func, description = 'Sem descrição.') {
-        this.commands[name] = { action: func, description }; // Ajustado para usar 'action' para consistência
+        this.commands[name] = { action: func, description };
+    }
+
+    // Exemplo: comando para iniciar app via eventBus
+    startAppViaEventBus(appId, params = []) {
+        eventBus.emit('app:start', { appId, params });
+    }
+
+    stopAppViaEventBus(instanceId) {
+        eventBus.emit('app:stop', { instanceId });
     }
 
     /**

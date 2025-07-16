@@ -1,13 +1,14 @@
 // core/MenuApps.js - v1.0.1
 
+import eventBus from './eventBus.js';
+
 /**
  * Classe para gerenciar o menu de aplicativos do sistema.
  * Agora é um módulo separado para ser usado pela taskbar.
  */
 export class menuApps {
-    constructor(desktop, manager) {
+    constructor(desktop) {
         this.desktop = desktop;
-        this.manager = manager;
         this.menuElement = null;
         this.visibilityFlag = false;
     }
@@ -20,11 +21,12 @@ export class menuApps {
         this.listingApps();
     }
 
-    // Lista os aplicativos carregados e detalhados pelo AppManager
+    // Lista os aplicativos carregados e detalhados pelo sistema
     listingApps() {
         this.menuElement.innerHTML = '';
-        // Pega a lista de apps detalhados do AppManager
-        const listOfApps = Array.from(this.manager.loadedAppDetails.values()).filter(app => !app.hidden);
+        // Busca a lista de apps detalhados de uma fonte global (window.loadedAppDetails)
+        const appDetailsMap = window.loadedAppDetails || new Map();
+        const listOfApps = Array.from(appDetailsMap.values()).filter(app => !app.hidden);
 
         listOfApps.forEach(data => {
             const app = document.createElement('div');
@@ -32,7 +34,7 @@ export class menuApps {
             app.id = data.id + '-launcher';
 
             app.addEventListener('click', () => {
-                this.manager.runApp(data.id);
+                eventBus.emit('app:start', { appId: data.id });
                 this.close();
             }, true);
 

@@ -1,6 +1,7 @@
 // apps/clock/main.js - v2.1.0 (Com DragManager integrado)
 
 import { BaseApp } from '../../core/BaseApp.js';
+import eventBus from '../../core/eventBus.js';
 import { dragManager } from '../../core/DragManager.js';
 
 /**
@@ -119,7 +120,7 @@ export default class ClockApp extends BaseApp {
                     widgetElement.style.cursor = 'grabbing';
                 },
                 onDragMove: (e, element, position) => {
-                    // Feedback visual durante o arrasto
+                    // Nenhuma dependência direta de appManager ou globals
                     widgetElement.style.opacity = '0.9';
                 },
                 onDragEnd: () => {

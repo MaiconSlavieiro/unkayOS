@@ -1,6 +1,7 @@
 // apps/taskbar/main.js - v2.0.0 (Refatorado sem Shadow DOM)
 
 import { BaseApp } from '../../core/BaseApp.js';
+import eventBus from '../../core/eventBus.js';
 
 /**
  * Aplicativo de Barra de Tarefas que gerencia o menu iniciar e ícones de aplicativos ativos.
@@ -28,6 +29,17 @@ export default class TaskbarApp extends BaseApp {
         this.createAppIcon = this.createAppIcon.bind(this);
         this.updateAppIcon = this.updateAppIcon.bind(this);
         this.removeAppIcon = this.removeAppIcon.bind(this);
+
+        // Listeners do eventBus para ciclo de vida dos apps
+        eventBus.on('app:started', ({ appId, instanceId }) => {
+            this.createAppIcon(instanceId);
+        });
+        eventBus.on('app:stopped', ({ instanceId }) => {
+            this.removeAppIcon(instanceId);
+        });
+        eventBus.on('app:icon:update', ({ instanceId, state }) => {
+            this.updateAppIcon(instanceId, state);
+        });
     }
 
     /**
@@ -61,8 +73,19 @@ export default class TaskbarApp extends BaseApp {
      * @param {string} iconUrl - URL do ícone.
      * @param {string} appName - Nome do aplicativo.
      */
-    createAppIcon(instanceId, iconUrl, appName) {
+    createAppIcon(instanceId) {
         if (!this.appsOnToolbarElement) return;
+        // Busca instância do AppManager para acessar runningApps
+        const appManager = window.appManager;
+        if (!appManager || !appManager.runningApps) return;
+        const appInfo = appManager.runningApps.get(instanceId);
+        if (!appInfo || !appInfo.appCoreInstance) return;
+        const appCore = appInfo.appCoreInstance;
+        // Só cria ícone para apps 'system_window'
+        if (appCore.mode !== 'system_window') return;
+
+        const iconUrl = appCore.icon_url || '/assets/icons/apps/generic_app_icon.svg';
+        const appName = appCore.app_name || 'App';
 
         const appIconDiv = document.createElement('div');
         appIconDiv.classList.add('taskbar__apps_on__app_icon');
@@ -83,28 +106,30 @@ export default class TaskbarApp extends BaseApp {
         });
 
         console.log(`[${this.appName}] Ícone criado para app: ${appName} (${instanceId})`);
+        // Garante que o ícone recém-criado reflita o foco imediatamente se for o app ativo
+        if (appManager && appManager.activeAppInstanceId === instanceId) {
+            this.updateAppIcon(instanceId, 'active');
+        }
     }
 
     /**
      * Atualiza o estado de um ícone de aplicativo.
      * @param {string} instanceId - ID da instância do aplicativo.
-     * @param {string} state - Estado ('active', 'minimized', 'normal').
+     * @param {string} state - Estado ('active', 'minimized', 'maximized', 'normal').
      */
     updateAppIcon(instanceId, state) {
-        const appIcon = this.appsOnToolbarElement?.querySelector(`[data-instance-id="${instanceId}"]`);
-        if (!appIcon) return;
-
-        // Remove classes de estado anteriores
-        appIcon.classList.remove('active', 'minimized');
-
-        // Adiciona a nova classe de estado
+        const icon = this.appsOnToolbarElement.querySelector(`.taskbar__apps_on__app_icon[data-instance-id='${instanceId}']`);
+        if (!icon) return;
+        icon.classList.remove('active', 'minimized', 'normal', 'maximized');
         if (state === 'active') {
-            appIcon.classList.add('active');
+            icon.classList.add('active');
         } else if (state === 'minimized') {
-            appIcon.classList.add('minimized');
+            icon.classList.add('minimized');
+        } else if (state === 'maximized') {
+            icon.classList.add('maximized');
+        } else {
+            icon.classList.add('normal');
         }
-
-        console.log(`[${this.appName}] Estado atualizado para app ${instanceId}: ${state}`);
     }
 
     /**
@@ -124,25 +149,8 @@ export default class TaskbarApp extends BaseApp {
      * @param {string} instanceId - ID da instância do aplicativo.
      */
     handleAppIconClick(instanceId) {
-        if (!this.appManager) return;
-
-        const appInfo = this.appManager.runningApps.get(instanceId);
-        if (!appInfo || !appInfo.appUIInstance) return;
-
-        if (appInfo.appUIInstance.isMinimized) {
-            // Se o app está minimizado, restaura e traz para o primeiro plano
-            appInfo.appUIInstance.toggleVisibility();
-            this.updateAppIcon(instanceId, 'active');
-            this.appManager.setFirstPlaneApp(instanceId);
-        } else if (this.appManager.activeAppInstanceId === instanceId) {
-            // Se o app é o ativo, minimiza
-            appInfo.appUIInstance.toggleVisibility();
-            this.updateAppIcon(instanceId, 'minimized');
-        } else {
-            // Se o app não está minimizado e não é o ativo, traz para o primeiro plano
-            this.appManager.setFirstPlaneApp(instanceId);
-            this.updateAppIcon(instanceId, 'active');
-        }
+        // Emite evento de intenção de ação na janela
+        eventBus.emit('window:toggle', { instanceId });
     }
 
     /**
@@ -153,55 +161,14 @@ export default class TaskbarApp extends BaseApp {
         import('../../core/MenuApps.js').then(module => {
             const { menuApps } = module;
             // O menu é criado no desktop principal
-            this.menuApps = new menuApps(this.desktopElement, this.appManager);
+            this.menuApps = new menuApps(this.desktopElement);
             this.menuApps.init();
             console.log(`[${this.appName}] Menu de aplicativos inicializado`);
         }).catch(error => {
             console.error(`[${this.appName}] Erro ao inicializar menu de aplicativos:`, error);
         });
     }
-
-    /**
-     * Configura os listeners para eventos do AppManager.
-     */
-    setupAppManagerListeners() {
-        if (!this.appManager) return;
-
-        // Intercepta a remoção de apps para limpeza adequada
-        const originalRemoveApp = this.appManager.removeApp.bind(this.appManager);
-        this.appManager.removeApp = (instanceId) => {
-            // Chama o método original primeiro
-            originalRemoveApp(instanceId);
-        };
-
-        // Intercepta a mudança de app ativo para atualizar estados
-        const originalSetFirstPlaneApp = this.appManager.setFirstPlaneApp.bind(this.appManager);
-        this.appManager.setFirstPlaneApp = (instanceId) => {
-            // Chama o método original primeiro
-            originalSetFirstPlaneApp(instanceId);
-            
-            // Atualiza os estados dos ícones após a mudança
-            setTimeout(() => {
-                for (const [id, appInfo] of this.appManager.runningApps.entries()) {
-                    if (appInfo.appTaskbarIcon) {
-                        if (id === instanceId) {
-                            appInfo.appTaskbarIcon.classList.add('active');
-                            appInfo.appTaskbarIcon.classList.remove('minimized');
-                        } else {
-                            appInfo.appTaskbarIcon.classList.remove('active');
-                            if (appInfo.appUIInstance?.isMinimized) {
-                                appInfo.appTaskbarIcon.classList.add('minimized');
-                            } else {
-                                appInfo.appTaskbarIcon.classList.remove('minimized');
-                            }
-                        }
-                    }
-                }
-            }, 0);
-        };
-
-        console.log(`[${this.appName}] Listeners do AppManager configurados`);
-    }
+    
 
     /**
      * Inicializa o aplicativo quando é executado.
@@ -222,17 +189,6 @@ export default class TaskbarApp extends BaseApp {
             return;
         }
 
-        // Obtém referência ao AppManager
-        this.appManager = window.appManager;
-        if (!this.appManager) {
-            console.error(`[${this.appName}] AppManager não encontrado`);
-            return;
-        }
-
-        // Configura o elemento de apps da taskbar no AppManager
-        this.appManager.appsOnToolBarElement = this.appsOnToolbarElement;
-        console.log(`[${this.appName}] Elemento de apps configurado no AppManager:`, this.appsOnToolbarElement);
-
         // Adiciona listener para o botão do menu iniciar
         if (this.startMenuElement) {
             this.startMenuElement.addEventListener('click', this.handleStartMenuClick);
@@ -247,9 +203,20 @@ export default class TaskbarApp extends BaseApp {
         // Inicializa o menu de aplicativos
         this.initializeMenuApps();
 
-        // Configura os listeners do AppManager
-        this.setupAppManagerListeners();
+        // Toda comunicação com apps e ciclo de vida é feita via eventBus (sem dependência do AppManager)
 
+        // Limpa ícones antigos e recria apenas os válidos
+        if (this.appsOnToolbarElement) {
+            this.appsOnToolbarElement.innerHTML = '';
+            const appManager = window.appManager;
+            if (appManager && appManager.runningApps) {
+                for (const [instanceId, appInfo] of appManager.runningApps.entries()) {
+                    if (appInfo && appInfo.appCoreInstance && appInfo.appCoreInstance.mode === 'system_window') {
+                        this.createAppIcon(instanceId);
+                    }
+                }
+            }
+        }
         console.log(`[${this.appName}] Taskbar inicializada com sucesso`);
     }
 

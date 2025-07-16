@@ -43,6 +43,9 @@ export class AppWindowSystem {
 
         // Binds para garantir que 'this' se refira à instância da classe nos event listeners
         this.toggleMaximize = this.toggleMaximize.bind(this);
+this.emitTaskbarIconState = this.emitTaskbarIconState.bind(this);
+        this.emitTaskbarIconStateIfChanged = this.emitTaskbarIconStateIfChanged.bind(this);
+        this._lastTaskbarState = null;
         this.toggleVisibility = this.toggleVisibility.bind(this);
         this.namespaceCSS = this.namespaceCSS.bind(this);
 
@@ -113,7 +116,9 @@ export class AppWindowSystem {
         this.dragCleanup = dragManager.enableDrag(this.appWindowElement, topBar, {
             onDragStart: () => {
                 // Foca a janela quando começa a arrastar
-                window.appManager.setFirstPlaneApp(this.instanceId);
+                import('./eventBus.js').then(({ default: eventBus }) => {
+                    eventBus.emit('window:focus', { instanceId: this.instanceId });
+                });
             },
             onDragEnd: () => {
                 // Atualiza posição de restauração
@@ -129,7 +134,9 @@ export class AppWindowSystem {
         minButton.title = 'Minimizar';
         minButton.addEventListener('click', (e) => {
             e.stopPropagation();
-            this.toggleVisibility();
+            import('./eventBus.js').then(({ default: eventBus }) => {
+                eventBus.emit('window:minimize', { instanceId: this.instanceId });
+            });
         });
         topBar.appendChild(minButton);
 
@@ -138,7 +145,13 @@ export class AppWindowSystem {
         maxButton.title = 'Maximizar/Restaurar';
         maxButton.addEventListener('click', (e) => {
             e.stopPropagation();
-            this.toggleMaximize();
+            import('./eventBus.js').then(({ default: eventBus }) => {
+                if (this.isMaximized) {
+                    eventBus.emit('window:unmaximize', { instanceId: this.instanceId });
+                } else {
+                    eventBus.emit('window:maximize', { instanceId: this.instanceId });
+                }
+            });
         });
         topBar.appendChild(maxButton);
 
@@ -147,13 +160,9 @@ export class AppWindowSystem {
         closeButton.title = 'Fechar';
         closeButton.addEventListener('click', (e) => {
             e.stopPropagation();
-            console.log(`[AppWindowSystem] Botão fechar clicado para app ${this.appName} (${this.instanceId})`);
-            console.log(`[AppWindowSystem] window.appManager:`, window.appManager);
-            if (window.appManager && typeof window.appManager.removeApp === 'function') {
-                window.appManager.removeApp(this.instanceId);
-            } else {
-                console.error(`[AppWindowSystem] window.appManager não encontrado ou removeApp não é uma função`);
-            }
+            import('./eventBus.js').then(({ default: eventBus }) => {
+                eventBus.emit('window:close', { instanceId: this.instanceId });
+            });
         });
         topBar.appendChild(closeButton);
 
@@ -175,7 +184,10 @@ export class AppWindowSystem {
 
         // Adiciona listener para focar a janela ao clicar em qualquer lugar nela
         this.appWindowElement.addEventListener('mousedown', () => {
-            window.appManager.setFirstPlaneApp(this.instanceId);
+            import('./eventBus.js').then(({ default: eventBus }) => {
+                eventBus.emit('window:focus', { instanceId: this.instanceId });
+            });
+            this.emitTaskbarIconStateIfChanged('active');
         });
 
         // Carrega o conteúdo HTML e CSS do aplicativo DENTRO do elemento de conteúdo
@@ -274,6 +286,21 @@ export class AppWindowSystem {
     }
 
 
+
+    // Emite evento para atualizar o ícone da taskbar
+    emitTaskbarIconState(state) {
+        import('./eventBus.js').then(({ default: eventBus }) => {
+            eventBus.emit('app:icon:update', { instanceId: this.instanceId, state });
+        });
+    }
+
+    // Emite evento só se o estado mudou
+    emitTaskbarIconStateIfChanged(state) {
+        if (this._lastTaskbarState !== state) {
+            this.emitTaskbarIconState(state);
+            this._lastTaskbarState = state;
+        }
+    }
 
     // Métodos de redimensionamento (baseados no original)
 
@@ -443,57 +470,29 @@ export class AppWindowSystem {
     }
 
     toggleMaximize() {
-        if (this.isMaximized) {
-            // Restaurar
-            this.appWindowElement.style.width = `${this.restoreWidth}px`;
-            this.appWindowElement.style.height = `${this.restoreHeight}px`;
-            this.appWindowElement.style.left = `${this.restoreX}px`;
-            this.appWindowElement.style.top = `${this.restoreY}px`;
-            this.appWindowElement.classList.remove('maximized');
-            this.isMaximized = false;
-        } else {
-            // Armazenar posição e tamanho atuais antes de maximizar
-            this.restoreWidth = this.appWindowElement.offsetWidth;
-            this.restoreHeight = this.appWindowElement.offsetHeight;
-            this.restoreX = this.appWindowElement.offsetLeft;
-            this.restoreY = this.appWindowElement.offsetTop;
-
-            // Maximizar para ocupar toda a área do desktopElement
-            this.appWindowElement.style.width = `${this.desktopElement.offsetWidth}px`;
-            this.appWindowElement.style.height = `${this.desktopElement.offsetHeight}px`;
-            this.appWindowElement.style.left = '0px';
-            this.appWindowElement.style.top = '0px';
-            this.appWindowElement.classList.add('maximized');
-            this.isMaximized = true;
-        }
-        // Garante que a janela ativa continue em primeiro plano após maximizar/restaurar
-        window.appManager.setFirstPlaneApp(this.instanceId);
+        // Emite evento para a taskbar atualizar o estado do ícone
+        this.emitTaskbarIconStateIfChanged(this.isMaximized ? 'normal' : 'maximized');
+        import('./eventBus.js').then(({ default: eventBus }) => {
+            if (this.isMaximized) {
+                eventBus.emit('window:unmaximize', { instanceId: this.instanceId });
+            } else {
+                eventBus.emit('window:maximize', { instanceId: this.instanceId });
+            }
+        });
+        // Não altera DOM nem propriedades locais!
     }
 
     toggleVisibility() {
-        const appInfo = window.appManager.runningApps.get(this.instanceId);
-        if (!appInfo) return;
-
-        if (this.isMinimized) {
-            // Restaurar
-            this.appWindowElement.style.display = 'block';
-            this.isMinimized = false;
-            if (appInfo.appTaskbarIcon) {
-                appInfo.appTaskbarIcon.classList.remove('minimized');
+        // Emite evento para a taskbar atualizar o estado do ícone
+        this.emitTaskbarIconStateIfChanged(this.isMinimized ? 'active' : 'minimized');
+        import('./eventBus.js').then(({ default: eventBus }) => {
+            if (this.isMinimized) {
+                eventBus.emit('window:restore', { instanceId: this.instanceId });
+            } else {
+                eventBus.emit('window:minimize', { instanceId: this.instanceId });
             }
-            window.appManager.setFirstPlaneApp(this.instanceId); // Traz para o primeiro plano ao restaurar
-        } else {
-            // Minimizar
-            this.appWindowElement.style.display = 'none';
-            this.isMinimized = true;
-            if (appInfo.appTaskbarIcon) {
-                appInfo.appTaskbarIcon.classList.add('minimized');
-            }
-            // Se o app minimizado era o ativo, limpa o activeAppInstanceId
-            if (window.appManager.activeAppInstanceId === this.instanceId) {
-                window.appManager.activeAppInstanceId = null;
-            }
-        }
+        });
+        // Não altera DOM nem propriedades locais!
     }
 
     /**
