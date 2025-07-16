@@ -2,6 +2,7 @@
 
 import { BaseApp } from './BaseApp.js';
 import { generateUniqueId } from './utils/generateUniqueId.js';
+import eventBus from './eventBus.js';
 
 export class AppCore {
     constructor(appData) { // Agora recebe appData já resolvido

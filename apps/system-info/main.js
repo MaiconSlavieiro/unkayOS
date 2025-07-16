@@ -1,6 +1,7 @@
 // apps/system-info/main.js - v2.1.0 (Com DragManager integrado)
 
 import { BaseApp } from '../../core/BaseApp.js';
+import eventBus from '../../core/eventBus.js';
 import { dragManager } from '../../core/DragManager.js';
 
 /**
@@ -25,10 +26,23 @@ export default class SystemInfoApp extends BaseApp {
         // Drag and drop
         this.dragCleanup = null;
         
+        // Contador local de apps ativos
+        this.activeAppsCount = 0;
+        
         // Bind methods
         this.updateSystemInfo = this.updateSystemInfo.bind(this);
         this.formatUptime = this.formatUptime.bind(this);
         this.getActiveAppsCount = this.getActiveAppsCount.bind(this);
+
+        // Listeners do eventBus para atualizar contador
+        eventBus.on('app:started', () => {
+            this.activeAppsCount++;
+            this.updateSystemInfo();
+        });
+        eventBus.on('app:stopped', () => {
+            this.activeAppsCount = Math.max(0, this.activeAppsCount - 1);
+            this.updateSystemInfo();
+        });
     }
 
     /**
@@ -53,19 +67,12 @@ export default class SystemInfoApp extends BaseApp {
      * @returns {number} Número de aplicativos ativos.
      */
     getActiveAppsCount() {
-        if (!this.appManager || !this.appManager.runningApps) {
-            return 0;
-        }
-        
-        let count = 0;
-        for (const [instanceId, appInfo] of this.appManager.runningApps.entries()) {
-            // Conta apenas apps que não estão minimizados
-            if (appInfo.appUIInstance && !appInfo.appUIInstance.isMinimized) {
-                count++;
-            }
-        }
-        
-        return count;
+        // Agora, recomenda-se escutar eventos 'app:started' e 'app:stopped' para manter um contador local
+        // Exemplo:
+        // eventBus.on('app:started', ...)
+        // eventBus.on('app:stopped', ...)
+        // e atualizar um this.activeAppsCount
+        return this.activeAppsCount || 0;
     }
 
     /**

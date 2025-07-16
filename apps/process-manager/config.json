@@ -1,0 +1,12 @@
+{
+  "app_name": "Gerenciador de Processos",
+  "icon_url": "icon.svg",
+  "dirApp": "index.html",
+  "jsFile": "main.js",
+  "styleFile": "style.css",
+  "mode": "system_window",
+  "autorun": false,
+  "hidden": false,
+  "width": "600px",
+  "height": "400px"
+}

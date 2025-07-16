@@ -1,6 +1,8 @@
 // apps/browser/main.js - v1.0.3
 
 import { BaseApp } from '../../core/BaseApp.js';
+import eventBus from '../../core/eventBus.js';
+// Exemplo: para reagir a eventos globais, use eventBus.on('app:started', ...)
 
 /**
  * Classe para o aplicativo TheOrb, estendendo BaseApp.
@@ -94,7 +96,7 @@ export default class TheOrbApp extends BaseApp {
             
             // Verifica se o domínio está na allowlist
             return this.allowedDomains.some(allowedDomain => {
-                // Verifica correspondência exata ou subdomínio
+                // Nenhuma dependência direta de appManager ou globals
                 return domain === allowedDomain || domain.endsWith('.' + allowedDomain);
             });
         } catch (e) {
