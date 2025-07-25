@@ -10,12 +10,30 @@ import eventBus from '../../core/eventBus.js';
  */
 export default class TheOrbApp extends BaseApp {
     /**
+     * Schema de parâmetros aceitos pelo app browser
+     */
+    static get parameters() {
+        return {
+            url: {
+                type: 'string',
+                required: false,
+                description: 'URL inicial a ser aberta pelo navegador'
+            },
+            incognito: {
+                type: 'boolean',
+                required: false,
+                description: 'Abrir em modo anônimo'
+            }
+        };
+    }
+
+    /**
      * Construtor do TheOrbApp.
-     * @param {AppCore} appCoreInstance - A instância do AppCore.
+     * @param {AppCore} CORE - A instância do AppCore.
      * @param {object} standardAPIs - APIs padrão fornecidas pelo sistema.
      */
-    constructor(appCoreInstance, standardAPIs) {
-        super(appCoreInstance, standardAPIs);
+    constructor(CORE, standardAPIs) {
+        super(CORE, standardAPIs);
 
         // Referências aos elementos DOM do browser
         this.browserAppElement = null; // O elemento host do conteúdo do app (div.app__content)
@@ -144,9 +162,10 @@ export default class TheOrbApp extends BaseApp {
 
     /**
      * Método chamado quando o aplicativo é executado.
-     * Assume que o HTML já foi injetado no appContentRoot pelo AppWindowSystem.
+     * @param {function} [terminalOutputCallback=null]
+     * @param {object} [appParams={}] - Parâmetros nomeados passados ao iniciar o app.
      */
-    onRun() {
+    onRun(terminalOutputCallback = null, appParams = {}) {
         console.log(`[${this.appName} - ${this.instanceId}] TheOrbApp.onRun() started. DOM should be ready.`);
 
         // O appContentRoot é o elemento de conteúdo direto (o div.app__content)
@@ -157,17 +176,17 @@ export default class TheOrbApp extends BaseApp {
             return;
         }
 
-        // Acessa os elementos internos do browser a partir do appContentRoot
-        this.urlInput = this.browserAppElement.querySelector('#urlInput');
-        this.goBtn = this.browserAppElement.querySelector('#goBtn');
-        this.backBtn = this.browserAppElement.querySelector('#backBtn');
-        this.forwardBtn = this.browserAppElement.querySelector('#forwardBtn');
-        this.reloadBtn = this.browserAppElement.querySelector('#reloadBtn');
-        this.homeBtn = this.browserAppElement.querySelector('#homeBtn');
-        this.newTabBtn = this.browserAppElement.querySelector('#newTabBtn');
-        this.bookmarksBtn = this.browserAppElement.querySelector('#bookmarksBtn');
-        this.tabsContainer = this.browserAppElement.querySelector('#tabsContainer');
-        this.contentArea = this.browserAppElement.querySelector('#contentArea');
+        // Acessa os elementos internos do browser a partir do appContentRoot usando utilitários padronizados
+        this.urlInput = this.$('#urlInput');
+        this.goBtn = this.$('#goBtn');
+        this.backBtn = this.$('#backBtn');
+        this.forwardBtn = this.$('#forwardBtn');
+        this.reloadBtn = this.$('#reloadBtn');
+        this.homeBtn = this.$('#homeBtn');
+        this.newTabBtn = this.$('#newTabBtn');
+        this.bookmarksBtn = this.$('#bookmarksBtn');
+        this.tabsContainer = this.$('#tabsContainer');
+        this.contentArea = this.$('#contentArea');
 
         if (!this.urlInput || !this.goBtn || !this.tabsContainer || !this.contentArea) {
             console.error(`[${this.appName} - ${this.instanceId}] Erro: Um ou mais elementos essenciais do browser não foram encontrados!`);
@@ -189,9 +208,36 @@ export default class TheOrbApp extends BaseApp {
         this.bookmarksBtn.addEventListener('click', this.handleBookmarksClick);
 
         // Cria a primeira aba ao iniciar
-        this.createTab();
+        let initialUrl = appParams.url || null;
+        this.createTab(initialUrl);
         this.setActiveTab(this.tabs[0].id);
-        this.showWelcomePage(); // Mostra a página de boas-vindas na primeira aba
+        if (initialUrl) {
+            this.navigateToUrl(initialUrl);
+        } else {
+            this.showWelcomePage(); // Mostra a página de boas-vindas na primeira aba
+        }
+    }
+
+    /**
+     * Suporte CLI: executa comandos diretamente do terminal.
+     * @param {Array<string>} args - Argumentos do terminal (ex: ['--help', '--url', 'https://...'])
+     * @param {function} writeLine - Função para escrever no terminal.
+     */
+    static async runCli(args, writeLine) {
+        let params = {};
+        for (let i = 0; i < args.length; i++) {
+            if (args[i] === '--url' && args[i + 1]) {
+                params.url = args[i + 1];
+                i++;
+            } else if (args[i] === '--incognito') {
+                params.incognito = true;
+            } else if (args[i] === '--help' || args[i] === '-h') {
+                writeLine('Uso: theorb [--url <endereço>] [--incognito] [--help]');
+                return;
+            }
+        }
+        eventBus.emit('app:start', { appId: 'theorb', params });
+        writeLine('Solicitação para abrir o browser enviada.');
     }
 
     /**

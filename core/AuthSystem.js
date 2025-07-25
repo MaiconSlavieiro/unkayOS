@@ -1,4 +1,4 @@
-// /core/AuthSystem.js - Sistema de Autenticação unkayOS
+// /core/AuthSystem.js
 
 import { AUTHENTIK_ENDPOINTS, getAuthConfig, validateAuthConfig } from './configs/auth-config.js';
 import { generateCodeVerifier, generateCodeChallenge } from './utils/generateCodeVerifier.js';

@@ -1,7 +1,9 @@
-// /core/AppWindowSystem.js - v2.1.0 (Com PositionManager integrado)
+// /core/AppWindowSystem.js - v2.1.1 (Com WindowLayerManager integrado)
 
 import { positionManager } from './PositionManager.js';
 import { dragManager } from './DragManager.js';
+import eventBus from './eventBus.js';
+import { windowLayerManager } from './WindowLayerManager.js';
 
 export class AppWindowSystem {
     constructor(core, desktopElement) { // Renomeado 'desktop' para 'desktopElement' para clareza
@@ -19,10 +21,8 @@ export class AppWindowSystem {
         this.initialX = appData.x_position || "10vw";
         this.initialY = appData.y_position || "10vh";
 
-        this.min_width = appData.min_width || 200; // Valor padrão para min_width
-        this.min_height = appData.min_height || 100; // Valor padrão para min_height
-
-        this.is_fullscreen = false;
+        this.minWidth = appData.minWidth || 200; // Valor padrão para minWidth
+        this.minHeight = appData.minHeight || 100; // Valor padrão para minHeight
 
         // Variáveis para armazenar a posição e tamanho atuais (em string, como no original)
         this.currentWidth = null;
@@ -41,40 +41,27 @@ export class AppWindowSystem {
         this.isMaximized = false;
         this.isMinimized = false;
 
-        // Binds para garantir que 'this' se refira à instância da classe nos event listeners
-        this.toggleMaximize = this.toggleMaximize.bind(this);
-this.emitTaskbarIconState = this.emitTaskbarIconState.bind(this);
-        this.emitTaskbarIconStateIfChanged = this.emitTaskbarIconStateIfChanged.bind(this);
-        this._lastTaskbarState = null;
-        this.toggleVisibility = this.toggleVisibility.bind(this);
         this.namespaceCSS = this.namespaceCSS.bind(this);
 
         this.createWindow();
     }
 
-
-
-    /**
-     * Aplica namespace CSS ao conteúdo para evitar conflitos.
-     * @param {string} css - CSS original
-     * @returns {string} CSS com namespace aplicado
-     */
     namespaceCSS(css) {
         if (!css) return '';
-        
+
         // Remove comentários CSS para evitar problemas
         css = css.replace(/\/\*[\s\S]*?\*\//g, '');
-        
+
         // Para apps de system_window, sempre aplica namespace
         // pois eles precisam de isolamento
         const globalSelectors = ['html', 'body', ':root', '*', '::before', '::after'];
-        
+
         return css.replace(/([^}]*){/g, (match, selector) => {
             // Se for um seletor global, não aplica namespace
             if (globalSelectors.some(global => selector.trim().includes(global))) {
                 return match;
             }
-            
+
             // Aplica namespace ao seletor
             const selectors = selector.split(',').map(s => {
                 s = s.trim();
@@ -83,14 +70,11 @@ this.emitTaskbarIconState = this.emitTaskbarIconState.bind(this);
                 }
                 return `.${this.namespace} ${s}`;
             });
-            
+
             return selectors.join(', ') + '{';
         });
     }
 
-    /**
-     * Cria o elemento DIV da janela do aplicativo e o anexa ao DOM.
-     */
     async createWindow() {
         this.appWindowElement = document.createElement('div');
         this.appWindowElement.classList.add('app', this.namespace);
@@ -114,17 +98,28 @@ this.emitTaskbarIconState = this.emitTaskbarIconState.bind(this);
 
         // Habilita o arrastar na barra de título usando DragManager
         this.dragCleanup = dragManager.enableDrag(this.appWindowElement, topBar, {
-            onDragStart: () => {
-                // Foca a janela quando começa a arrastar
-                import('./eventBus.js').then(({ default: eventBus }) => {
-                    eventBus.emit('window:focus', { instanceId: this.instanceId });
-                });
+            onDragStart: (e) => {
+                // CORREÇÃO: Impede arrasto se a janela estiver maximizada
+                if (this.isMaximized) {
+                    console.log(`[AppWindowSystem] Arrasto bloqueado - janela '${this.appName}' está maximizada`);
+                    return false; // Cancela o arrasto
+                }
+                
+                eventBus.emit("window:focus", { instanceId: this.instanceId });
+                // Define z-index alto para arrasto
+                windowLayerManager.setDraggingLayer(this.appWindowElement);
             },
             onDragEnd: () => {
-                // Atualiza posição de restauração
-                const rect = this.appWindowElement.getBoundingClientRect();
-                this.restoreX = rect.left;
-                this.restoreY = rect.top;
+                // Só executa se o arrasto não foi cancelado
+                if (!this.isMaximized) {
+                    // Atualiza posição de restauração
+                    const rect = this.appWindowElement.getBoundingClientRect();
+                    this.restoreX = rect.left;
+                    this.restoreY = rect.top;
+                    
+                    // Restaura z-index após arrasto
+                    windowLayerManager.restoreFromDragging(this.instanceId, this.appWindowElement);
+                }
             }
         });
 
@@ -168,6 +163,9 @@ this.emitTaskbarIconState = this.emitTaskbarIconState.bind(this);
 
         this.appWindowElement.appendChild(topBar);
 
+        // CORREÇÃO: Criar bordas ANTES do conteúdo para evitar sobreposição
+        this.createResizeHandles();
+
         // Área de conteúdo (onde o HTML do app será carregado)
         const contentDiv = document.createElement('div');
         contentDiv.classList.add('app__content');
@@ -176,19 +174,15 @@ this.emitTaskbarIconState = this.emitTaskbarIconState.bind(this);
         // *** NOVA ESTRATÉGIA: Sem Shadow DOM - injeção direta ***
         this.appContentRoot = contentDiv; // O elemento de conteúdo direto
 
-        // Bordas de redimensionamento
-        this.createResizeHandles();
-
         // Anexa a janela ao div#desktop
         this.desktopElement.appendChild(this.appWindowElement);
 
-        // Adiciona listener para focar a janela ao clicar em qualquer lugar nela
-        this.appWindowElement.addEventListener('mousedown', () => {
-            import('./eventBus.js').then(({ default: eventBus }) => {
-                eventBus.emit('window:focus', { instanceId: this.instanceId });
-            });
-            this.emitTaskbarIconStateIfChanged('active');
-        });
+        // CORREÇÃO: Registra a janela no WindowLayerManager imediatamente
+        // Isso garante que ela tenha um z-index apropriado desde o início
+        windowLayerManager.bringToFront(this.instanceId, this.appWindowElement);
+        
+        // Configura z-index das bordas de redimensionamento
+        windowLayerManager.setResizeBordersLayer(this.appWindowElement);
 
         // Carrega o conteúdo HTML e CSS do aplicativo DENTRO do elemento de conteúdo
         await this.loadAppContent();
@@ -196,17 +190,14 @@ this.emitTaskbarIconState = this.emitTaskbarIconState.bind(this);
         // Chama onRun() na instância do aplicativo APÓS o elemento da janela ser anexado ao DOM
         // e o conteúdo HTML/CSS carregado.
         if (this.core.appInstance && typeof this.core.appInstance.onRun === "function") {
-            // Define o appContentRoot na instância do aplicativo para que ele possa acessar seu próprio DOM
             this.core.appInstance.appContentRoot = this.appContentRoot;
-            this.core.appInstance.onRun();
+            this.core.appInstance.onRun(null, this.core.lastAppParams);
         } else {
             console.warn(`[${this.appName} - ${this.instanceId}] Nenhuma instância de app ou método onRun encontrado para chamar após renderização.`);
         }
     }
 
-    /**
-     * Cria as alças de redimensionamento nas bordas da janela.
-     */
+
     createResizeHandles() {
         const borders = [
             ["app__board_right", this.enableResizeRight.bind(this)],
@@ -218,8 +209,9 @@ this.emitTaskbarIconState = this.emitTaskbarIconState.bind(this);
         borders.forEach(([cls, fn]) => {
             const el = document.createElement("div");
             el.classList.add(cls);
-            el.addEventListener('mousedown', fn);
             this.appWindowElement.appendChild(el);
+            // Chama a função que configura o event listener
+            fn(el);
         });
 
         // Adicionar alças de canto para redimensionamento diagonal
@@ -232,14 +224,12 @@ this.emitTaskbarIconState = this.emitTaskbarIconState.bind(this);
         corners.forEach(([cls, fn]) => {
             const el = document.createElement("div");
             el.classList.add(cls);
-            el.addEventListener('mousedown', fn);
             this.appWindowElement.appendChild(el);
+            // Para cantos, o enableResizeCorner recebe o elemento como segundo parâmetro
+            fn(el);
         });
     }
 
-    /**
-     * Carrega o conteúdo HTML e CSS do aplicativo no elemento de conteúdo da janela.
-     */
     async loadAppContent() {
         // Carrega o HTML do aplicativo
         if (this.core.dirApp) {
@@ -267,42 +257,23 @@ this.emitTaskbarIconState = this.emitTaskbarIconState.bind(this);
                     throw new Error(`HTTP error! status: ${styleResponse.status} for ${this.core.styleFile}`);
                 }
                 const styleText = await styleResponse.text();
-                
+
                 // Aplica namespace ao CSS
                 const namespacedCSS = this.namespaceCSS(styleText);
-                
+
                 // Cria elemento de estilo no head do documento
                 const styleElement = document.createElement('style');
                 styleElement.id = `style-${this.namespace}`;
                 styleElement.textContent = namespacedCSS;
                 document.head.appendChild(styleElement);
-                
+
                 console.log(`[AppWindowSystem] CSS carregado e namespaced para ${this.appName}`);
-                
+
             } catch (e) {
                 console.error(`Erro carregando CSS do app ${this.appName}:`, e);
             }
         }
     }
-
-
-
-    // Emite evento para atualizar o ícone da taskbar
-    emitTaskbarIconState(state) {
-        import('./eventBus.js').then(({ default: eventBus }) => {
-            eventBus.emit('app:icon:update', { instanceId: this.instanceId, state });
-        });
-    }
-
-    // Emite evento só se o estado mudou
-    emitTaskbarIconStateIfChanged(state) {
-        if (this._lastTaskbarState !== state) {
-            this.emitTaskbarIconState(state);
-            this._lastTaskbarState = state;
-        }
-    }
-
-    // Métodos de redimensionamento (baseados no original)
 
     enableResizeRight(bord) {
         bord.addEventListener('mousedown', e => {
@@ -313,7 +284,7 @@ this.emitTaskbarIconState = this.emitTaskbarIconState.bind(this);
 
             const onMouseMove = e => {
                 const newWidth = startWidth + (e.clientX - startX);
-                if (newWidth > this.min_width) {
+                if (newWidth > this.minWidth) {
                     this.appWindowElement.style.width = newWidth + "px";
                     this.currentWidth = this.appWindowElement.style.width;
                 }
@@ -340,7 +311,7 @@ this.emitTaskbarIconState = this.emitTaskbarIconState.bind(this);
             const onMouseMove = e => {
                 const dx = startX - e.clientX;
                 const newWidth = startWidth + dx;
-                if (newWidth > this.min_width) {
+                if (newWidth > this.minWidth) {
                     this.appWindowElement.style.width = newWidth + "px";
                     this.appWindowElement.style.left = (startLeft - dx) + "px";
                     this.currentWidth = this.appWindowElement.style.width;
@@ -369,7 +340,7 @@ this.emitTaskbarIconState = this.emitTaskbarIconState.bind(this);
             const onMouseMove = e => {
                 const dy = startY - e.clientY;
                 const newHeight = startHeight + dy;
-                if (newHeight > this.min_height) {
+                if (newHeight > this.minHeight) {
                     this.appWindowElement.style.height = newHeight + "px";
                     this.appWindowElement.style.top = (startTop - dy) + "px";
                     this.currentHeight = this.appWindowElement.style.height;
@@ -396,7 +367,7 @@ this.emitTaskbarIconState = this.emitTaskbarIconState.bind(this);
 
             const onMouseMove = e => {
                 const newHeight = startHeight + (e.clientY - startY);
-                if (newHeight > this.min_height) {
+                if (newHeight > this.minHeight) {
                     this.appWindowElement.style.height = newHeight + "px";
                     this.currentHeight = this.appWindowElement.style.height;
                 }
@@ -412,109 +383,221 @@ this.emitTaskbarIconState = this.emitTaskbarIconState.bind(this);
         });
     }
 
-    enableResizeCorner(direction, e) {
-        if (this.isMaximized) return;
-        e.preventDefault();
+    enableResizeCorner(direction, bord) {
+        bord.addEventListener('mousedown', e => {
+            if (this.isMaximized) return;
+            e.preventDefault();
 
-        const startX = e.clientX;
-        const startY = e.clientY;
-        const startWidth = this.appWindowElement.offsetWidth;
-        const startHeight = this.appWindowElement.offsetHeight;
-        const startLeft = this.appWindowElement.offsetLeft;
-        const startTop = this.appWindowElement.offsetTop;
+            const startX = e.clientX;
+            const startY = e.clientY;
+            const startWidth = this.appWindowElement.offsetWidth;
+            const startHeight = this.appWindowElement.offsetHeight;
+            const startLeft = this.appWindowElement.offsetLeft;
+            const startTop = this.appWindowElement.offsetTop;
 
-        const onMouseMove = (moveEvent) => {
-            let newWidth = startWidth;
-            let newHeight = startHeight;
-            let newLeft = startLeft;
-            let newTop = startTop;
+            const onMouseMove = (moveEvent) => {
+                let newWidth = startWidth;
+                let newHeight = startHeight;
+                let newLeft = startLeft;
+                let newTop = startTop;
 
-            if (direction.includes('e')) { // Right
-                newWidth = startWidth + (moveEvent.clientX - startX);
-            }
-            if (direction.includes('w')) { // Left
-                const dx = startX - moveEvent.clientX;
-                newWidth = startWidth + dx;
-                newLeft = startLeft - dx;
-            }
-            if (direction.includes('s')) { // Bottom
-                newHeight = startHeight + (moveEvent.clientY - startY);
-            }
-            if (direction.includes('n')) { // Top
-                const dy = startY - moveEvent.clientY;
-                newHeight = startHeight + dy;
-                newTop = startTop - dy;
-            }
+                if (direction.includes('e')) { // Right
+                    newWidth = startWidth + (moveEvent.clientX - startX);
+                }
+                if (direction.includes('w')) { // Left
+                    const dx = startX - moveEvent.clientX;
+                    newWidth = startWidth + dx;
+                    newLeft = startLeft - dx;
+                }
+                if (direction.includes('s')) { // Bottom
+                    newHeight = startHeight + (moveEvent.clientY - startY);
+                }
+                if (direction.includes('n')) { // Top
+                    const dy = startY - moveEvent.clientY;
+                    newHeight = startHeight + dy;
+                    newTop = startTop - dy;
+                }
 
-            if (newWidth > this.min_width) {
-                this.appWindowElement.style.width = newWidth + "px";
-                if (direction.includes('w')) this.appWindowElement.style.left = newLeft + "px";
-                this.currentWidth = this.appWindowElement.style.width;
-                this.currentX = this.appWindowElement.style.left;
-            }
-            if (newHeight > this.min_height) {
-                this.appWindowElement.style.height = newHeight + "px";
-                if (direction.includes('n')) this.appWindowElement.style.top = newTop + "px";
-                this.currentHeight = this.appWindowElement.style.height;
-                this.currentY = this.appWindowElement.style.top;
-            }
-        };
+                if (newWidth > this.minWidth) {
+                    this.appWindowElement.style.width = newWidth + "px";
+                    if (direction.includes('w')) this.appWindowElement.style.left = newLeft + "px";
+                    this.currentWidth = this.appWindowElement.style.width;
+                    this.currentX = this.appWindowElement.style.left;
+                }
+                if (newHeight > this.minHeight) {
+                    this.appWindowElement.style.height = newHeight + "px";
+                    if (direction.includes('n')) this.appWindowElement.style.top = newTop + "px";
+                    this.currentHeight = this.appWindowElement.style.height;
+                    this.currentY = this.appWindowElement.style.top;
+                }
+            };
 
-        const onMouseUp = () => {
-            document.removeEventListener("mousemove", onMouseMove);
-            document.removeEventListener("mouseup", onMouseUp);
-        };
+            const onMouseUp = () => {
+                document.removeEventListener("mousemove", onMouseMove);
+                document.removeEventListener("mouseup", onMouseUp);
+            };
 
-        document.addEventListener("mousemove", onMouseMove);
-        document.addEventListener("mouseup", onMouseUp);
-    }
-
-    toggleMaximize() {
-        // Emite evento para a taskbar atualizar o estado do ícone
-        this.emitTaskbarIconStateIfChanged(this.isMaximized ? 'normal' : 'maximized');
-        import('./eventBus.js').then(({ default: eventBus }) => {
-            if (this.isMaximized) {
-                eventBus.emit('window:unmaximize', { instanceId: this.instanceId });
-            } else {
-                eventBus.emit('window:maximize', { instanceId: this.instanceId });
-            }
+            document.addEventListener("mousemove", onMouseMove);
+            document.addEventListener("mouseup", onMouseUp);
         });
-        // Não altera DOM nem propriedades locais!
     }
 
-    toggleVisibility() {
-        // Emite evento para a taskbar atualizar o estado do ícone
-        this.emitTaskbarIconStateIfChanged(this.isMinimized ? 'active' : 'minimized');
-        import('./eventBus.js').then(({ default: eventBus }) => {
-            if (this.isMinimized) {
-                eventBus.emit('window:restore', { instanceId: this.instanceId });
-            } else {
-                eventBus.emit('window:minimize', { instanceId: this.instanceId });
-            }
-        });
-        // Não altera DOM nem propriedades locais!
-    }
-
-    /**
-     * Remove a janela e limpa recursos associados.
-     */
     remove() {
         // Limpa o drag se existir
         if (this.dragCleanup) {
             this.dragCleanup();
         }
-        
+
         // Remove o elemento da janela
         if (this.appWindowElement && this.appWindowElement.parentNode) {
             this.appWindowElement.remove();
         }
-        
+
         // Remove o CSS namespaced
         const styleElement = document.getElementById(`style-${this.namespace}`);
         if (styleElement) {
             styleElement.remove();
         }
-        
+
         console.log(`[AppWindowSystem] Janela '${this.appName}' removida e recursos limpos`);
     }
+
+    minimize() {
+        this.isMinimized = true;
+        this.appWindowElement.style.display = 'none';
+        this.appWindowElement.classList.add('minimized');
+        console.log(`[AppWindowSystem] Janela '${this.appName}' minimizada`);
+        
+        // Emite evento para notificar mudança de estado
+        eventBus.emit('window:state:changed', { 
+            instanceId: this.instanceId, 
+            state: 'minimized',
+            isMinimized: true,
+            isMaximized: this.isMaximized,
+            isActive: false
+        });
+    }
+
+    restore() {
+        this.isMinimized = false;
+        this.appWindowElement.style.display = '';
+        this.appWindowElement.classList.remove('minimized');
+        console.log(`[AppWindowSystem] Janela '${this.appName}' restaurada`);
+        
+        // Emite evento para notificar mudança de estado
+        eventBus.emit('window:state:changed', { 
+            instanceId: this.instanceId, 
+            state: this.isMaximized ? 'maximized' : 'normal',
+            isMinimized: false,
+            isMaximized: this.isMaximized,
+            isActive: true
+        });
+    }
+
+    maximize() {
+        this.isMaximized = true;
+
+        // Salva posição/tamanho atuais para restauração
+        this._restoreWin = {
+            width: this.appWindowElement.style.width,
+            height: this.appWindowElement.style.height,
+            left: this.appWindowElement.style.left,
+            top: this.appWindowElement.style.top
+        };
+
+        // Aplica maximização
+        this.appWindowElement.style.left = '0px';
+        this.appWindowElement.style.top = '0px';
+        this.appWindowElement.style.width = this.desktopElement.offsetWidth + 'px';
+        this.appWindowElement.style.height = this.desktopElement.offsetHeight + 'px';
+        this.appWindowElement.classList.add('maximized');
+
+        console.log(`[AppWindowSystem] Janela '${this.appName}' maximizada`);
+        
+        // Emite evento para notificar mudança de estado
+        eventBus.emit('window:state:changed', { 
+            instanceId: this.instanceId, 
+            state: 'maximized',
+            isMinimized: this.isMinimized,
+            isMaximized: true,
+            isActive: true
+        });
+    }
+
+    /**
+     * Remove maximização da janela
+     */
+    unmaximize() {
+        this.isMaximized = false;
+
+        // Restaura posição/tamanho salvos
+        if (this._restoreWin) {
+            this.appWindowElement.style.width = this._restoreWin.width;
+            this.appWindowElement.style.height = this._restoreWin.height;
+            this.appWindowElement.style.left = this._restoreWin.left;
+            this.appWindowElement.style.top = this._restoreWin.top;
+        }
+
+        this.appWindowElement.classList.remove('maximized');
+
+        console.log(`[AppWindowSystem] Janela '${this.appName}' desmaximizada`);
+        
+        // Emite evento para notificar mudança de estado
+        eventBus.emit('window:state:changed', { 
+            instanceId: this.instanceId, 
+            state: 'normal',
+            isMinimized: this.isMinimized,
+            isMaximized: false,
+            isActive: true
+        });
+    }
+
+    /**
+     * Foca a janela (traz para primeiro plano)
+     */
+    focus() {
+        this.appWindowElement.classList.add('active-app');
+        
+        // Se a janela estava minimizada, restaura ela
+        if (this.isMinimized) {
+            this.restore();
+        }
+        
+        // Emite evento para notificar mudança de estado apenas se não estava minimizada
+        if (!this.isMinimized) {
+            eventBus.emit('window:state:changed', { 
+                instanceId: this.instanceId, 
+                state: this.isMaximized ? 'maximized' : 'normal',
+                isMinimized: this.isMinimized,
+                isMaximized: this.isMaximized,
+                isActive: true
+            });
+        }
+        
+        console.log(`[AppWindowSystem] Janela '${this.appName}' focada`);
+    }
+
+    unfocus() {
+        this.appWindowElement.classList.remove('active-app');
+        
+        // Emite evento para notificar mudança de estado
+        eventBus.emit('window:state:changed', { 
+            instanceId: this.instanceId, 
+            state: this.isMinimized ? 'minimized' : (this.isMaximized ? 'maximized' : 'normal'),
+            isMinimized: this.isMinimized,
+            isMaximized: this.isMaximized,
+            isActive: false
+        });
+        
+        console.log(`[AppWindowSystem] Janela '${this.appName}' desfocada`);
+    }
+
+    isMinimized() {
+        return this.isMinimized;
+    }
+
+    isMaximized() {
+        return this.isMaximized;
+    }
+
 }

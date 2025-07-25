@@ -1,8 +1,9 @@
-// apps/clock/main.js - v2.1.0 (Com DragManager integrado)
+// apps/clock/main.js - v2.1.1 (Com WindowLayerManager para widgets)
 
 import { BaseApp } from '../../core/BaseApp.js';
 import eventBus from '../../core/eventBus.js';
 import { dragManager } from '../../core/DragManager.js';
+import { windowLayerManager } from '../../core/WindowLayerManager.js';
 
 /**
  * Aplicativo de relógio de desktop que exibe hora e data em tempo real.
@@ -11,8 +12,8 @@ import { dragManager } from '../../core/DragManager.js';
  * NOVA ESTRATÉGIA: Sem Shadow DOM - acesso direto aos elementos
  */
 export default class ClockApp extends BaseApp {
-    constructor(appCoreInstance, standardAPIs) {
-        super(appCoreInstance, standardAPIs);
+    constructor(CORE, standardAPIs) {
+        super(CORE, standardAPIs);
 
         // Referências aos elementos DOM
         this.timeElement = null;
@@ -79,9 +80,9 @@ export default class ClockApp extends BaseApp {
     onRun() {
         console.log(`[${this.appName} - ${this.instanceId}] ClockApp.onRun() started.`);
 
-        // Obtém referências aos elementos diretamente do appContentRoot
-        this.timeElement = this.appContentRoot.querySelector('#clockTime');
-        this.dateElement = this.appContentRoot.querySelector('#clockDate');
+        // Obtém referências aos elementos diretamente do appContentRoot usando utilitários padronizados
+        this.timeElement = this.$('#clockTime');
+        this.dateElement = this.$('#clockDate');
 
         if (!this.timeElement || !this.dateElement) {
             console.error(`[${this.appName} - ${this.instanceId}] Erro: Elementos do relógio não encontrados!`);
@@ -118,6 +119,8 @@ export default class ClockApp extends BaseApp {
                 parentElement: this.desktopElement, // Usa o desktop como referência
                 onDragStart: () => {
                     widgetElement.style.cursor = 'grabbing';
+                    // Z-index especial para widgets durante arrasto
+                    windowLayerManager.setWidgetDraggingLayer(widgetElement);
                 },
                 onDragMove: (e, element, position) => {
                     // Nenhuma dependência direta de appManager ou globals
@@ -126,6 +129,8 @@ export default class ClockApp extends BaseApp {
                 onDragEnd: () => {
                     widgetElement.style.cursor = 'grab';
                     widgetElement.style.opacity = '1';
+                    // Restaura z-index do widget após arrasto
+                    windowLayerManager.restoreWidgetFromDragging(widgetElement);
                 }
             });
             
@@ -156,5 +161,14 @@ export default class ClockApp extends BaseApp {
         // Limpa referências DOM para evitar vazamentos de memória
         this.timeElement = null;
         this.dateElement = null;
+    }
+
+    static runCli(args, writeLine) {
+        if (args.includes('--help') || args.includes('-h')) {
+            writeLine('Uso: clock [--help]\nExibe o relógio na área de trabalho.');
+            return;
+        }
+        window.appManager?.runApp('clock');
+        writeLine('Relógio iniciado.');
     }
 } 

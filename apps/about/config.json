@@ -9,8 +9,8 @@
   "height": "40vh",
   "x_position": "30vw",
   "y_position": "30vh",
-  "min_width": 350,
-  "min_height": 300,
+  "minWidth": 350,
+  "minHeight": 300,
   "autorun": false,
   "hidden": false
 }

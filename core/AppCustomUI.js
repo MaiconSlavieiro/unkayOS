@@ -1,6 +1,7 @@
-// /core/AppCustomUI.js - v2.1.0 (Com PositionManager integrado)
+// /core/AppCustomUI.js - v2.1.1
 
 import { positionManager } from './PositionManager.js';
+import { windowLayerManager } from './WindowLayerManager.js';
 
 /**
  * Gerencia aplicativos com UI personalizada que são parte fundamental do ambiente desktop.
@@ -48,7 +49,7 @@ export class AppCustomUI {
                 const contentDiv = this.appElement.querySelector('.desktop-app-content');
                 this.core.appInstance.appContentRoot = contentDiv || this.appElement;
                 this.core.appInstance.desktopElement = this.desktopElement;
-                this.core.appInstance.onRun();
+                this.core.appInstance.onRun(null, this.core.lastAppParams);
             } else {
                 console.warn(`[AppCustomUI] App ${this.core.app_name} não tem instância ou método onRun`);
             }
@@ -92,14 +93,17 @@ export class AppCustomUI {
         // Para apps de desktop_ui, não aplica estilos que possam interferir com o posicionamento
         if (this.core.mode === 'desktop_ui') {
             this.appElement.style.pointerEvents = 'auto';
+            // Define z-index para widgets de desktop usando WindowLayerManager
+            windowLayerManager.setSystemLayer(this.appElement, 'DESKTOP_APPS');
         } else {
             this.appElement.style.cssText += `
                 position: relative;
                 width: 100%;
                 height: 100%;
                 pointer-events: auto;
-                z-index: 1;
             `;
+            // Para custom_ui também usa sistema de camadas
+            windowLayerManager.setSystemLayer(this.appElement, 'DESKTOP_APPS');
         }
     }
 

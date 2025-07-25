@@ -1,4 +1,4 @@
-// eventBus.js - Simple Pub/Sub for unkayOS
+// eventBus.js
 
 const listeners = {};
 

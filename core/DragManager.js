@@ -1,4 +1,4 @@
-// core/DragManager.js - v2.0.0 (Refatorado com lógica do AppWindowSystem)
+// core/DragManager.js - v2.0.0
 
 /**
  * Gerenciador de drag and drop para aplicativos do unkayOS.
@@ -29,7 +29,7 @@ export class DragManager {
             onDragStart: options.onDragStart || null,
             onDragMove: options.onDragMove || null,
             onDragEnd: options.onDragEnd || null,
-            zIndexOnDrag: options.zIndexOnDrag || 1000
+           // zIndexOnDrag: options.zIndexOnDrag || 1000
         };
 
         const startDrag = (e) => {
@@ -46,7 +46,7 @@ export class DragManager {
 
             // Garante position absolute e z-index
             element.style.position = 'absolute';
-            element.style.zIndex = config.zIndexOnDrag;
+            //element.style.zIndex = config.zIndexOnDrag;
 
             // EXATAMENTE como o AppWindowSystem faz:
             // Captura a posição inicial do mouse
@@ -57,19 +57,32 @@ export class DragManager {
             const startLeft = element.offsetLeft;
             const startTop = element.offsetTop;
 
-            console.log('[DragManager] Início do drag (AppWindowSystem style):', {
-                startX, startY,
-                startLeft, startTop,
-                offsetLeft: element.offsetLeft,
-                offsetTop: element.offsetTop
-            });
+            // console.log('[DragManager] Início do drag (AppWindowSystem style):', {
+            //     startX, startY,
+            //     startLeft, startTop,
+            //     offsetLeft: element.offsetLeft,
+            //     offsetTop: element.offsetTop
+            // });
 
             // Adiciona classe visual durante o arrasto
             element.classList.add('dragging');
 
             // Chama callback de início do arrasto
+            let shouldContinue = true;
             if (config.onDragStart) {
-                config.onDragStart(e, element);
+                const result = config.onDragStart(e, element);
+                // Se onDragStart retornar false, cancela o arrasto
+                if (result === false) {
+                    shouldContinue = false;
+                }
+            }
+
+            // Se o arrasto foi cancelado, para aqui
+            if (!shouldContinue) {
+                element.classList.remove('dragging');
+                this.isDragging = false;
+                this.currentElement = null;
+                return;
             }
 
             // EXATAMENTE como o AppWindowSystem faz:

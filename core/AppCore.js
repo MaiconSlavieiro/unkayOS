@@ -1,8 +1,7 @@
-// /core/AppCore.js - v1.0.25 (Atualizado para compatibilidade sem Shadow DOM)
+// /core/AppCore.js - v1.0.25 
 
 import { BaseApp } from './BaseApp.js';
 import { generateUniqueId } from './utils/generateUniqueId.js';
-import eventBus from './eventBus.js';
 
 export class AppCore {
     constructor(appData) { // Agora recebe appData já resolvido
@@ -27,7 +26,12 @@ export class AppCore {
         this.managedIntervals = new Set();
     }
 
-    async run(desktopElement, terminalOutputCallback = null, appParams = []) {
+    async run(desktopElement, terminalOutputCallback = null, appParams = {}) {
+        // Garante que appParams seja objeto
+        if (Array.isArray(appParams)) {
+            appParams = { value: appParams };
+        }
+        this.lastAppParams = appParams; // <-- Salva os parâmetros para uso posterior
         // Prepara as APIs padrão que serão passadas para o construtor da BaseApp
         const standardAPIs = {
             setTimeout: (callback, delay, ...args) => {
@@ -61,6 +65,16 @@ export class AppCore {
                 const module = await import(this.jsFile);
                 if (typeof module.default === "function" && module.default.prototype instanceof BaseApp) {
                     this.appInstance = new module.default(this, standardAPIs);
+                    // Lê o schema de parâmetros, se existir
+                    if (module.default.parameters) {
+                        this.parametersSchema = module.default.parameters;
+                    } else if (typeof module.default.getParametersSchema === 'function') {
+                        this.parametersSchema = module.default.getParametersSchema();
+                    } else {
+                        this.parametersSchema = {};
+                    }
+                    // Método para expor o schema
+                    this.getParametersSchema = () => this.parametersSchema;
                     console.log(`[AppCore] Instância do app ${this.app_name} criada com sucesso`);
                 } else {
                     // Para apps que não estendem BaseApp, eles ainda podem ter seu HTML/CSS/JS injetado,
@@ -97,7 +111,7 @@ export class AppCore {
                 // AppCustomUI define appContentRoot e chama onRun seguindo o padrão do AppWindowSystem.
                 if (this.appInstance && typeof this.appInstance.onRun === "function") {
                     // Nota: AppCustomUI define this.appInstance.appContentRoot antes de chamar onRun.
-                    this.appInstance.onRun();
+                    this.appInstance.onRun(null, this.lastAppParams);
                 }
                 return customUIApp;
             }
@@ -105,7 +119,7 @@ export class AppCore {
             case "headless": {
                 // Para apps headless, chamamos onRun diretamente aqui, passando os callbacks e params
                 if (this.appInstance && typeof this.appInstance.onRun === "function") {
-                    this.appInstance.onRun(terminalOutputCallback, appParams);
+                    this.appInstance.onRun(terminalOutputCallback, this.lastAppParams);
                 } else {
                     console.warn(`Aplicativo headless '${this.app_name}' não tem o método 'onRun()' implementado.`);
                 }

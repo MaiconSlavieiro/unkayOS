@@ -1,6 +1,7 @@
-// core/MenuApps.js - v1.0.1
+// core/MenuApps.js - v1.0.2
 
 import eventBus from './eventBus.js';
+import { windowLayerManager } from './WindowLayerManager.js';
 
 /**
  * Classe para gerenciar o menu de aplicativos do sistema.
@@ -18,6 +19,10 @@ export class menuApps {
         this.menuElement.classList.add('menu_apps');
         this.menuElement.id = 'menu_apps';
         this.desktop.appendChild(this.menuElement);
+        
+        // Define z-index correto para o menu de apps
+        windowLayerManager.setSystemLayer(this.menuElement, 'APPS_MENU');
+        
         this.listingApps();
     }
 

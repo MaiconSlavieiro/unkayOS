@@ -11,7 +11,7 @@
   display: flex;
   align-items: center;
   padding: 0 5px;
-  z-index: 1000;
+  /* z-index definido via WindowLayerManager */
   backdrop-filter: blur(var(--blur-intensity));
   -webkit-backdrop-filter: blur(var(--blur-intensity));
   /* Garante que a taskbar seja clicável */
@@ -70,8 +70,23 @@
   filter: grayscale(70%);
 }
 
+.taskbar__apps_on__app_icon.maximized {
+  background-color: var(--color-primary-base);
+  opacity: 0.9;
+}
+
+.taskbar__apps_on__app_icon.active.maximized {
+  background-color: var(--color-primary-variation-1);
+  border-bottom-color: var(--color-warning);
+}
+
+.taskbar__apps_on__app_icon.normal {
+  opacity: 0.8;
+}
+
 .taskbar__apps_on__app_icon:hover {
   background-color: var(--color-dark-secondary);
+  opacity: 1;
 }
 
 .taskbar__apps_on__app_icon__img {
@@ -105,6 +120,24 @@
 
 .taskbar__apps_on__app_icon.active::after {
   opacity: 1;
+}
+
+.taskbar__apps_on__app_icon.minimized::after {
+  opacity: 0.3;
+  background-color: var(--color-warning);
+}
+
+.taskbar__apps_on__app_icon.maximized::after {
+  opacity: 1;
+  background-color: var(--color-success);
+  width: 6px;
+  height: 6px;
+}
+
+.taskbar__apps_on__app_icon.active.maximized::after {
+  background-color: var(--color-warning);
+  width: 8px;
+  height: 8px;
 }
 
 /* Animação para novos apps */
@@ -142,7 +175,7 @@
   backdrop-filter: blur(var(--blur-intensity));
   -webkit-backdrop-filter: blur(var(--blur-intensity));
   overflow-y: auto;
-  z-index: 1001;
+  /* z-index definido via WindowLayerManager */
   display: none;
 }
 

@@ -34,43 +34,6 @@ export const commands = {
             return now.toLocaleString();
         }
     },
-    whoami: {
-        description: "Exibe o usuário atual.",
-        action: () => {
-            return authSystem.getAPI().getUserPrompt()
-        }
-    },
-    neofetch: {
-        description: "Exibe informações do sistema (simulado).",
-        action: () => {
-            const output = `
-<span class="blue">    .--.
-  |o_o |
-  |:_/ |
-  //   \\
-(|     |)
-'-----'</span>
-<span class="yellow">reversodoavesso.online</span>
----
-<span class="cyan">OS</span>: Web Browser (Simulated)
-<span class="cyan">Host</span>: reversodoavesso.online
-<span class="cyan">Kernel</span>: JS/HTML/CSS
-<span class="cyan">Uptime</span>: Just now!
-<span class="cyan">Shell</span>: Custom Terminal
-<span class="cyan">Terminal</span>: reversodoavesso.online
-<span class="cyan">CPU</span>: Your Device's CPU
-<span class="cyan">GPU</span>: Your Device's GPU
-<span class="cyan">Memory</span>: Your Device's RAM
-            `;
-            return output;
-        }
-    },
-    about: {
-        description: "Exibe informações sobre este terminal.",
-        action: () => {
-            return '<span class="purple">Este é um terminal web simples criado com HTML, CSS e JavaScript. Ele simula comandos básicos para uma experiência interativa no navegador.</span>';
-        }
-    },
     ps: {
         description: "Lista os processos (aplicativos) em execução.",
         action: (args, appendToTerminal, terminalOutput, displayInitialMessages, allCommands, appManager) => {
@@ -88,7 +51,7 @@ export const commands = {
                 const headlessApps = [];
 
                 for (const [instanceId, appInfo] of appManager.runningApps.entries()) {
-                    const app = appInfo.appCoreInstance;
+                    const app = appInfo.CORE;
                     if (app.mode === 'desktop_ui' || app.mode === 'custom_ui') {
                         systemApps.push({ instanceId, app });
                     } else if (app.mode === 'system_window') {
@@ -133,133 +96,7 @@ export const commands = {
 
             return output;
         }
-    },
-    start: {
-        description: "Inicia um aplicativo. Uso: start <app_id> [param1 param2 ...]",
-        action: async (args, appendToTerminal, terminalOutput, displayInitialMessages, allCommands, appManager) => {
-            if (!appManager) {
-                return '<span class="red">Erro: Gerenciador de aplicativos não disponível.</span>';
-            }
-            if (args.length === 0) {
-                return '<span class="red">Uso: start &lt;app_id&gt; [param1 param2 ...]</span>';
-            }
-            const appId = args[0];
-            const appParams = args.slice(1); // Captura o restante dos argumentos como parâmetros para o app
-
-            appendToTerminal(`<span class="yellow">Iniciando aplicativo '${appId}' com parâmetros: [${appParams.join(', ')}]...</span>`);
-            try {
-                // Passa a função appendToTerminal do terminal atual e os parâmetros
-                const instanceId = await appManager.runApp(appId, appendToTerminal, appParams);
-                if (instanceId) {
-                    return `<span class="green">Aplicativo '${appId}' iniciado com sucesso. Instance ID: ${instanceId}</span>`;
-                } else {
-                    // Se instanceId é null, significa que o app pode já estar rodando (para custom_ui/headless)
-                    // ou houve um erro que já foi logado pelo runApp.
-                    return `<span class="red">Não foi possível iniciar o aplicativo '${appId}'. Verifique o console para mais detalhes.</span>`;
-                }
-            } catch (error) {
-                return `<span class="red">Erro ao iniciar aplicativo '${appId}': ${error.message || error}</span>`;
-            }
-        }
-    },
-    stop: {
-        description: "Para uma instância de aplicativo. Uso: stop <instance_id>",
-        action: (args, appendToTerminal, terminalOutput, displayInitialMessages, allCommands, appManager) => {
-            if (!appManager) {
-                return '<span class="red">Erro: Gerenciador de aplicativos não disponível.</span>';
-            }
-            if (args.length === 0) {
-                return '<span class="red">Uso: stop &lt;instance_id&gt;</span>';
-            }
-            const instanceId = args[0];
-            
-            // Verifica se o app existe
-            const appInfo = appManager.runningApps.get(instanceId);
-            if (!appInfo) {
-                return `<span class="red">Erro: Instância '${instanceId}' não encontrada.</span>`;
-            }
-            
-            const app = appInfo.appCoreInstance;
-            
-            // Verifica se é um app de sistema (não pode ser fechado)
-            if (app.mode === 'desktop_ui' || app.mode === 'custom_ui') {
-                return `<span class="orange">Erro: Não é possível parar '${app.app_name}' (${app.mode}). Apps de sistema não podem ser fechados.</span>`;
-            }
-            
-            appendToTerminal(`<span class="yellow">Parando instância '${instanceId}' (${app.app_name})...</span>`);
-            try {
-                appManager.removeApp(instanceId);
-                return `<span class="green">Instância '${instanceId}' (${app.app_name}) parada com sucesso.</span>`;
-            } catch (error) {
-                return `<span class="red">Erro ao parar instância '${instanceId}': ${error.message || error}</span>`;
-            }
-        }
-    },
-    "ps-system": {
-        description: "Lista apenas os aplicativos de sistema em execução.",
-        action: (args, appendToTerminal, terminalOutput, displayInitialMessages, allCommands, appManager) => {
-            if (!appManager) {
-                return '<span class="red">Erro: Gerenciador de aplicativos não disponível.</span>';
-            }
-
-            let output = '<span class="purple">Aplicativos de Sistema em execução:</span><br>';
-
-            const systemApps = [];
-            for (const [instanceId, appInfo] of appManager.runningApps.entries()) {
-                const app = appInfo.appCoreInstance;
-                if (app.mode === 'desktop_ui' || app.mode === 'custom_ui') {
-                    systemApps.push({ instanceId, app });
-                }
-            }
-
-            if (systemApps.length > 0) {
-                for (const { instanceId, app } of systemApps) {
-                    output += `  PID: ${instanceId} | Nome: ${app.app_name || 'N/A'} | Modo: ${app.mode} | <span class="orange">Sistema</span><br>`;
-                }
-                output += `<br><span class="yellow">Total: ${systemApps.length} aplicativo(s) de sistema</span><br>`;
-            } else {
-                output += '  Nenhum aplicativo de sistema em execução.<br>';
-            }
-
-            return output;
-        }
-    },
-    killall: {
-        description: "Encerra todos os aplicativos de usuário e headless em execução (apps de sistema são preservados).",
-        action: (args, appendToTerminal, terminalOutput, displayInitialMessages, allCommands, appManager) => {
-            if (!appManager) {
-                return '<span class="red">Erro: Gerenciador de aplicativos não disponível.</span>';
-            }
-            
-            // Conta quantos apps serão fechados
-            let userAppsCount = 0;
-            let headlessAppsCount = 0;
-            let systemAppsCount = 0;
-            
-            for (const [instanceId, appInfo] of appManager.runningApps.entries()) {
-                const app = appInfo.appCoreInstance;
-                if (app.mode === 'desktop_ui' || app.mode === 'custom_ui') {
-                    systemAppsCount++;
-                } else if (app.mode === 'system_window') {
-                    userAppsCount++;
-                } else if (app.mode === 'headless') {
-                    headlessAppsCount++;
-                }
-            }
-            
-            if (userAppsCount === 0 && headlessAppsCount === 0) {
-                return '<span class="yellow">Nenhum aplicativo de usuário ou headless em execução para encerrar.</span>';
-            }
-            
-            appendToTerminal(`<span class="yellow">Encerrando ${userAppsCount} aplicativo(s) de usuário e ${headlessAppsCount} aplicativo(s) headless...</span>`);
-            if (systemAppsCount > 0) {
-                appendToTerminal(`<span class="purple">Preservando ${systemAppsCount} aplicativo(s) de sistema.</span>`);
-            }
-            
-            appManager.killAll();
-            return `<span class="green">Comando killall executado. ${userAppsCount + headlessAppsCount} aplicativo(s) encerrado(s).</span>`;
-        }
-    },
+    },  
     login: {
         description: "Inicia o processo de login SSO.",
         action: async (args, appendToTerminal, terminalOutput, displayInitialMessages, allCommands, appManager) => {

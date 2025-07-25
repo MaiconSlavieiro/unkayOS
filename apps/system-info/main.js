@@ -1,8 +1,9 @@
-// apps/system-info/main.js - v2.1.0 (Com DragManager integrado)
+// apps/system-info/main.js - v2.1.1 (Com WindowLayerManager para widgets)
 
 import { BaseApp } from '../../core/BaseApp.js';
 import eventBus from '../../core/eventBus.js';
 import { dragManager } from '../../core/DragManager.js';
+import { windowLayerManager } from '../../core/WindowLayerManager.js';
 
 /**
  * Widget de informações do sistema que exibe dados em tempo real.
@@ -11,8 +12,8 @@ import { dragManager } from '../../core/DragManager.js';
  * NOVA ESTRATÉGIA: Sem Shadow DOM - acesso direto aos elementos
  */
 export default class SystemInfoApp extends BaseApp {
-    constructor(appCoreInstance, standardAPIs) {
-        super(appCoreInstance, standardAPIs);
+    constructor(CORE, standardAPIs) {
+        super(CORE, standardAPIs);
 
         // Referências aos elementos DOM
         this.osInfoElement = null;
@@ -99,10 +100,10 @@ export default class SystemInfoApp extends BaseApp {
         console.log(`[${this.appName} - ${this.instanceId}] SystemInfoApp.onRun() started.`);
         console.log(`[${this.appName} - ${this.instanceId}] appContentRoot:`, this.appContentRoot);
 
-        // Obtém referências aos elementos diretamente do appContentRoot
-        this.osInfoElement = this.appContentRoot.querySelector('#osInfo');
-        this.activeAppsElement = this.appContentRoot.querySelector('#activeApps');
-        this.uptimeElement = this.appContentRoot.querySelector('#uptime');
+        // Obtém referências aos elementos diretamente do appContentRoot usando utilitários padronizados
+        this.osInfoElement = this.$('#osInfo');
+        this.activeAppsElement = this.$('#activeApps');
+        this.uptimeElement = this.$('#uptime');
 
         if (!this.osInfoElement || !this.activeAppsElement || !this.uptimeElement) {
             console.error(`[${this.appName} - ${this.instanceId}] Erro: Elementos do widget não encontrados!`);
@@ -143,6 +144,8 @@ export default class SystemInfoApp extends BaseApp {
                 parentElement: this.desktopElement, // Usa o desktop como referência
                 onDragStart: () => {
                     widgetElement.style.cursor = 'grabbing';
+                    // Z-index especial para widgets durante arrasto
+                    windowLayerManager.setWidgetDraggingLayer(widgetElement);
                 },
                 onDragMove: (e, element, position) => {
                     // Feedback visual durante o arrasto
@@ -151,6 +154,8 @@ export default class SystemInfoApp extends BaseApp {
                 onDragEnd: () => {
                     widgetElement.style.cursor = 'grab';
                     widgetElement.style.opacity = '1';
+                    // Restaura z-index do widget após arrasto
+                    windowLayerManager.restoreWidgetFromDragging(widgetElement);
                 }
             });
             
@@ -182,5 +187,14 @@ export default class SystemInfoApp extends BaseApp {
         this.osInfoElement = null;
         this.activeAppsElement = null;
         this.uptimeElement = null;
+    }
+
+    static runCli(args, writeLine) {
+        if (args.includes('--help') || args.includes('-h')) {
+            writeLine('Uso: system-info [--help]\nExibe informações do sistema.');
+            return;
+        }
+        window.appManager?.runApp('system-info');
+        writeLine('Widget de informações do sistema iniciado.');
     }
 } 

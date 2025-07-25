@@ -14,13 +14,13 @@ import eventBus from '../../core/eventBus.js';
 export default class TerminalApp extends BaseApp {
     /**
      * Construtor do TerminalApp.
-     * @param {AppCore} appCoreInstance - A instância do AppCore.
+     * @param {AppCore} CORE - A instância do AppCore.
      * @param {object} standardAPIs - APIs padrão fornecidas pelo sistema.
      */
-    constructor(appCoreInstance, standardAPIs) {
+    constructor(CORE, standardAPIs) {
         // O appContentRoot será definido pelo AppWindowSystem antes de onRun ser chamado,
         // então não o passamos aqui diretamente.
-        super(appCoreInstance, standardAPIs);
+        super(CORE, standardAPIs);
 
         // Referências aos elementos DOM do terminal
         this.terminalAppElement = null; // O elemento div#terminal-app
@@ -141,8 +141,23 @@ export default class TerminalApp extends BaseApp {
                 this.writeLine(`Erro ao executar '${commandName}': ${error.message}`, 'error');
             }
         } else {
-            console.warn(`[${this.appName}] Comando não encontrado: ${commandName}`);
-            this.writeLine(`<span class="red">Comando '${commandName}' não encontrado. Digite 'help' para ver os comandos.</span>`, 'error');
+            // Novo: tentar rodar app como comando CLI
+            try {
+                // Procurar app nos apps carregados
+                const appId = commandName;
+                // Tenta encontrar o caminho do app
+                const appDetails = window.appManager?.loadedAppDetails?.get(appId);
+                if (appDetails && appDetails.jsFile) {
+                    const module = await import(appDetails.jsFile);
+                    if (module.default && typeof module.default.runCli === 'function') {
+                        await module.default.runCli(args, this.writeLine);
+                        return;
+                    }
+                }
+            } catch (e) {
+                // Se erro ao importar, ignora e mostra mensagem padrão
+            }
+            this.writeLine(`<span class="red">Comando ou app '${commandName}' não encontrado. Digite 'help' para ver os comandos.</span>`, 'error');
         }
     }
 
@@ -168,12 +183,12 @@ export default class TerminalApp extends BaseApp {
     onRun() {
         console.log(`[${this.appName} - ${this.instanceId}] TerminalApp.onRun() started. DOM should be ready.`);
 
-        // Acessa os elementos internos do terminal diretamente do appContentRoot
-        this.terminalAppElement = this.appContentRoot.querySelector('#terminal-app');
-        this.terminalOutputElement = this.appContentRoot.querySelector('#terminalOutput');
-        this.inputElement = this.appContentRoot.querySelector('#terminalInput');
-        this.terminalInputLine = this.appContentRoot.querySelector('.terminal-input-line');
-        this.terminalPromptElement = this.appContentRoot.querySelector('#terminalPrompt');
+        // Acessa os elementos internos do terminal diretamente do appContentRoot usando utilitários padronizados
+        this.terminalAppElement = this.$('#terminal-app');
+        this.terminalOutputElement = this.$('#terminalOutput');
+        this.inputElement = this.$('#terminalInput');
+        this.terminalInputLine = this.$('.terminal-input-line');
+        this.terminalPromptElement = this.$('#terminalPrompt');
 
         // Atualiza o prompt dinamicamente com o valor do AuthSystem
         if (this.terminalPromptElement) {
@@ -218,6 +233,17 @@ export default class TerminalApp extends BaseApp {
         // e o foco volte para o input.
         this.appContentRoot.addEventListener('click', () => {
             this.inputElement.focus();
+        });
+
+        // Adiciona listeners para feedback de apps
+        eventBus.on('app:started', ({ appId, instanceId }) => {
+            this.writeLine(`<span class='green'>Aplicativo '${appId}' iniciado com sucesso. Instance ID: ${instanceId}</span>`);
+        });
+        eventBus.on('app:start:error', ({ appId, reason }) => {
+            this.writeLine(`<span class='red'>Erro ao iniciar aplicativo '${appId}': ${reason}</span>`, 'error');
+        });
+        eventBus.on('app:killall:done', ({ count }) => {
+            this.writeLine(`<span class='green'>Comando killall executado. ${count} aplicativo(s) encerrado(s).</span>`);
         });
 
         console.log(`[${this.appName} - ${this.instanceId}] Terminal inicializado com sucesso`);
