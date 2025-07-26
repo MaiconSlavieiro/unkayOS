@@ -6,6 +6,8 @@
     { "id": "system-info", "path": "/apps/system-info/" },
     { "id": "taskbar", "path": "/apps/taskbar/" },
     { "id": "theorb", "path": "/apps/browser/" },
-    { "id": "process-manager", "path": "/apps/process-manager/" }
+    { "id": "process-manager", "path": "/apps/process-manager/" },
+    { "id": "file-manager", "path": "/apps/file-manager/" },
+    { "id": "text-editor", "path": "/apps/text-editor/" }
   ]
 }

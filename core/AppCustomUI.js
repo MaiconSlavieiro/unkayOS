@@ -70,6 +70,7 @@ export class AppCustomUI {
         this.appElement = document.createElement('div');
         this.appElement.classList.add('desktop-app', this.namespace);
         this.appElement.id = this.core.instanceId;
+        this.appElement.dataset.instanceId = this.core.instanceId; // Para o KeyboardManager
         this.appElement.dataset.appId = this.core.id;
         this.appElement.dataset.appName = this.core.app_name;
         this.appElement.dataset.appType = 'desktop_ui';

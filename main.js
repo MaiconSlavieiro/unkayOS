@@ -1,52 +1,63 @@
-// main.js - v1.0.25
+// main.js - v2.0.0 (Refatorado com SystemManager centralizado)
 
-import { AppManager } from './core/AppManager.js';
-import { AuthSystem } from './core/AuthSystem.js';
+import { systemManager } from './core/SystemManager.js';
 
 async function init() {
     const desktop = document.querySelector('#desktop');
-    desktop.style.backgroundImage = 'url(/assets/images/wallpaper_01.jpg)'; // Caminho absoluto
 
     try {
-        // Inicializa o sistema de autenticação
-        console.log('[main.js] Inicializando sistema de autenticação...');
-        window.authSystem = new AuthSystem();
+        console.log('[main.js] Inicializando unkayOS com SystemManager...');
         
-        // Aguarda a inicialização do sistema de autenticação
-        await new Promise(resolve => {
-            const checkAuth = () => {
-                if (window.authSystem) {
-                    resolve();
-                } else {
-                    setTimeout(checkAuth, 100);
-                }
-            };
-            checkAuth();
-        });
-
-        const response = await fetch('/apps/apps.json');
-        if (!response.ok) {
-            throw new Error(`HTTP error! status: ${response.status}`);
-        }
-        const jsonData = await response.json();
-        const appConfigs = jsonData.app_configs || []; // Assume que a lista de apps está em 'app_configs'
-
-        // Inicializa o AppManager com o desktopElement e as configurações base dos apps
-        // appsOnToolBar será configurado pela taskbar quando ela inicializar
-        window.appManager = new AppManager(desktop, null, appConfigs);
-
-        // Carrega as configurações detalhadas de cada app (os config.json individuais)
-        await window.appManager.loadAppConfigs();
-
-        // Inicia os aplicativos que devem ser auto-executados
-        // A taskbar será iniciada automaticamente como um app de desktop
-        window.appManager.initAutorunApps(); // Chama o método do AppManager para iniciar autorun
+        // Inicializa todos os sistemas de forma centralizada e ordenada
+        await systemManager.initialize(desktop);
         
-        console.log('[main.js] Sistema inicializado com sucesso');
+        // Sistemas agora estão disponíveis via systemManager.getSystem()
+        // Para compatibilidade temporária, ainda expõe no window
+        window.appManager = systemManager.getSystem('appManager');
+        window.authSystem = systemManager.getSystem('authSystem');
+        window.keyboardManager = systemManager.getSystem('keyboardManager');
+        window.unkayFileSystem = {
+            fileSystem: systemManager.getSystem('fileSystem'),
+            fs: systemManager.getSystem('fs')
+        };
+        window.loadingManager = systemManager.getSystem('loadingManager');
+        window.loadingUI = systemManager.getSystem('loadingUI');
+        window.lazyResourceLoader = systemManager.getSystem('lazyResourceLoader');
+        
+        console.log('[main.js] unkayOS inicializado com sucesso');
+        console.log('[main.js] Estatísticas do sistema:', systemManager.getSystemStats());
         
     } catch (error) {
-        console.error('Falha ao carregar apps.json ou inicializar:', error);
+        console.error('[main.js] Falha ao inicializar unkayOS:', error);
+        
+        // Mostra erro na tela para o usuário
+        const errorDiv = document.createElement('div');
+        errorDiv.style.cssText = `
+            position: fixed;
+            top: 50%;
+            left: 50%;
+            transform: translate(-50%, -50%);
+            background: #ff4444;
+            color: white;
+            padding: 20px;
+            border-radius: 8px;
+            font-family: monospace;
+            z-index: 99999;
+        `;
+        errorDiv.innerHTML = `
+            <h3>Erro ao inicializar unkayOS</h3>
+            <p>${error.message}</p>
+            <small>Verifique o console para mais detalhes</small>
+        `;
+        document.body.appendChild(errorDiv);
     }
 }
+
+// Event listener para shutdown limpo
+window.addEventListener('beforeunload', async () => {
+    if (systemManager.isInitialized) {
+        await systemManager.shutdown();
+    }
+});
 
 init();

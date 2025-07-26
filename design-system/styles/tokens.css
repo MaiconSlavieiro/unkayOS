@@ -31,13 +31,33 @@
     --color-error: #e74c3c;
     --color-accent-highlight: #ff7f50;
   
+    /* Window controls */
+    --color-window-close: #ff5f56;
+    --color-window-minimize: #ffbd2e;
+    --color-window-maximize: #27c93f;
+  
     /* Texto */
     --color-text-on-dark: #ecf0f1;
     --color-text-on-light: #2c3e50;
+    --color-text-primary: #ffffff;
+    --color-text-secondary: #cccccc;
+    --color-text-tertiary: #888888;
+    --color-text-muted: #666666;
+  
+    /* Superfícies */
+    --color-surface-primary: #1e1e1e;
+    --color-surface-secondary: #2d2d2d;
+    --color-surface-tertiary: #3e3e3e;
+  
+    /* Background */
+    --color-background-primary: #1e1e1e;
+    --color-background-secondary: #2d2d2d;
   
     /* Bordas */
     --color-border-light: #bdc3c7;
     --color-border-dark: #34495e;
+    --color-border-primary: #404040;
+    --color-border-secondary: #505050;
   
     /* Efeitos */
     --shadow-color: rgba(0, 0, 0, 0.2);
@@ -49,16 +69,38 @@
     --spacing-md: 16px;
     --spacing-lg: 24px;
     --spacing-xl: 32px;
+
+    /* Tamanhos específicos */
+    --size-resize-handle: 5px;
+    --size-small-icon: 10px;
+    --size-button: 15px;
+    --size-topbar-height: 45px;
+    --size-content-max-width: 300px;
   
     /* Border radius */
     --border-radius-sm: 4px;
     --border-radius-md: 8px;
     --border-radius-lg: 12px;
-  
+    --border-radius-circle: 50%;
+
+    /* Opacidade */
+    --opacity-high: 0.9;
+    --opacity-medium: 0.8;
+    --opacity-low: 0.5;
+
     /* Transições */
     --transition-ease: all 0.2s ease-in-out;
-  
-    /* Exemplo de var derivada */
+    
+    /* Estados de interação */
+    --color-hover: #4e4e4e;
+    --color-active: #5e5e5e;
+    --color-focus: var(--color-primary-base);
+    
+    /* Cores específicas para aplicativos */
+    --color-folder: #dcb67a;
+    --color-file: #519aba;
+    
+    /* Cores derivadas para compatibilidade */
     --color-background: var(--color-dark-secondary);
   }
   

@@ -16,16 +16,53 @@ export class DragManager {
     }
 
     /**
+     * Verifica se um elemento deve ser excluído do drag
+     * @param {HTMLElement} target - Elemento que foi clicado
+     * @param {object} config - Configuração do drag com exclusões
+     * @returns {boolean} - true se deve excluir, false caso contrário
+     */
+    shouldExcludeFromDrag(target, config) {
+        // Verifica elementos específicos
+        if (config.excludeElements && config.excludeElements.includes(target)) {
+            return true;
+        }
+
+        // Verifica seletores CSS
+        if (config.excludeSelectors && config.excludeSelectors.length > 0) {
+            for (const selector of config.excludeSelectors) {
+                if (target.matches(selector)) {
+                    return true;
+                }
+                // Também verifica se o target está dentro de um elemento que corresponde ao seletor
+                if (target.closest(selector)) {
+                    return true;
+                }
+            }
+        }
+
+        return false;
+    }
+
+    /**
      * Habilita o arrastar em um elemento usando exatamente a mesma lógica do AppWindowSystem.
      * @param {HTMLElement} element - Elemento a ser arrastado
      * @param {HTMLElement} handle - Elemento que serve como "alça" para arrastar (opcional)
      * @param {object} options - Opções de configuração
+     * @param {boolean} options.constrainToParent - Se deve restringir ao elemento pai (padrão: true)
+     * @param {HTMLElement} options.parentElement - Elemento pai específico para restrições
+     * @param {string[]} options.excludeSelectors - Seletores CSS de elementos a excluir do drag
+     * @param {HTMLElement[]} options.excludeElements - Elementos específicos a excluir do drag
+     * @param {function} options.onDragStart - Callback chamado no início do drag
+     * @param {function} options.onDragMove - Callback chamado durante o movimento
+     * @param {function} options.onDragEnd - Callback chamado no fim do drag
      */
     enableDrag(element, handle = null, options = {}) {
         const dragHandle = handle || element;
         const config = {
             constrainToParent: options.constrainToParent !== false, // Padrão: true
             parentElement: options.parentElement || null, // Elemento pai específico para restrições
+            excludeSelectors: options.excludeSelectors || [], // Seletores de elementos a excluir do drag
+            excludeElements: options.excludeElements || [], // Elementos específicos a excluir do drag
             onDragStart: options.onDragStart || null,
             onDragMove: options.onDragMove || null,
             onDragEnd: options.onDragEnd || null,
@@ -33,6 +70,11 @@ export class DragManager {
         };
 
         const startDrag = (e) => {
+            // Verifica se o clique foi em um elemento excluído do drag
+            if (this.shouldExcludeFromDrag(e.target, config)) {
+                return;
+            }
+
             e.preventDefault();
             e.stopPropagation();
 
@@ -128,7 +170,7 @@ export class DragManager {
                 element.classList.remove('dragging');
 
                 // Restaura seleção de texto
-                document.body.style.userSelect = '';
+                document.body.classList.remove('dragging-disabled');
 
                 // Remove listeners temporários
                 document.removeEventListener('mousemove', onMouseMove);
@@ -148,7 +190,7 @@ export class DragManager {
             document.addEventListener('mouseup', onMouseUp);
 
             // Previne seleção de texto durante o arrasto
-            document.body.style.userSelect = 'none';
+            document.body.classList.add('dragging-disabled');
         };
 
         const onMouseUp = (e) => {
@@ -226,6 +268,52 @@ export class DragManager {
             });
             document.dispatchEvent(event);
         }
+    }
+
+    /**
+     * Método de conveniência para configurar drag em janelas do sistema
+     * @param {HTMLElement} windowElement - Elemento da janela
+     * @param {HTMLElement} titleBar - Barra de título
+     * @param {object} callbacks - Callbacks específicos da janela
+     */
+    enableWindowDrag(windowElement, titleBar, callbacks = {}) {
+        return this.enableDrag(windowElement, titleBar, {
+            excludeSelectors: [
+                '.app__top_bar__close_button',
+                '.app__top_bar__min_button', 
+                '.app__top_bar__max_button',
+                'button', // Exclui todos os botões
+                'input', // Exclui campos de input
+                'select', // Exclui selects
+                'textarea' // Exclui textareas
+            ],
+            constrainToParent: true,
+            ...callbacks // Permite override dos callbacks
+        });
+    }
+
+    /**
+     * Método de conveniência para configurar drag em elementos de UI customizada
+     * @param {HTMLElement} element - Elemento a ser arrastado
+     * @param {HTMLElement} handle - Handle do drag
+     * @param {string[]} additionalExclusions - Seletores adicionais para excluir
+     * @param {object} callbacks - Callbacks específicos
+     */
+    enableCustomDrag(element, handle, additionalExclusions = [], callbacks = {}) {
+        const defaultExclusions = [
+            'button',
+            'input',
+            'select', 
+            'textarea',
+            'a',
+            '[data-no-drag]' // Atributo especial para marcar elementos não-arrastáveis
+        ];
+
+        return this.enableDrag(element, handle, {
+            excludeSelectors: [...defaultExclusions, ...additionalExclusions],
+            constrainToParent: false,
+            ...callbacks
+        });
     }
 }
 

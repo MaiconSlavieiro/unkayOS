@@ -1,8 +1,10 @@
-// /core/AppManager.js - v1.0.26 
+// /core/AppManager.js - v1.0.27 
 
 import { AppCore } from './AppCore.js';
 import eventBus from './eventBus.js'; // Importa o eventBus para Pub/Sub
 import { windowLayerManager } from './WindowLayerManager.js'; // Gerenciador de z-index dinâmico
+import { loadingManager } from './LoadingManager.js'; // Sistema de loading
+import { loadingUI } from './LoadingUI.js'; // Interface de loading
 
 
 export class AppManager {
@@ -59,8 +61,8 @@ export class AppManager {
             this.runApp(appId, params);
         });
 
-        eventBus.on('app:stop', ({ instanceId }) => {
-            this.stopApp(instanceId);
+        eventBus.on('app:stop', async ({ instanceId }) => {
+            await this.stopApp(instanceId);
         });
 
         eventBus.on('window:focus', ({ instanceId }) => {
@@ -116,8 +118,8 @@ export class AppManager {
         });
 
 
-        eventBus.on('window:close', ({ instanceId }) => {
-            this.stopApp(instanceId);
+        eventBus.on('window:close', async ({ instanceId }) => {
+            await this.stopApp(instanceId);
         });
 
         // Novo evento para escutar mudanças de estado das janelas
@@ -196,6 +198,18 @@ export class AppManager {
 
         const CORE = new AppCore(appData);
 
+        // Inicia o sistema de loading para apps system_window
+        if (appData.mode === 'system_window') {
+            // Inicia loading para JS se existir
+            if (appData.jsFile) {
+                eventBus.emit('app:loading:start', { 
+                    instanceId: CORE.instanceId, 
+                    resourceType: 'js', 
+                    resourceUrl: appData.jsFile 
+                });
+            }
+        }
+
         try {
 
             const UI = await CORE.run(this.desktopElement, null, appParams);
@@ -255,7 +269,7 @@ export class AppManager {
     }
 
     //revisar
-    stopApp(instanceId) {
+    async stopApp(instanceId) {
         // Emite evento de tentativa de stop
         eventBus.emit('app:stopping', { instanceId });
         console.log(`[AppManager] removeApp chamado para instanceId: ${instanceId}`);
@@ -275,8 +289,8 @@ export class AppManager {
             return;
         }
 
-        // Chama o método stop() do AppCore para limpeza
-        appInfo.CORE.stop();
+        // Chama o método stop() do AppCore para limpeza (agora é async)
+        await appInfo.CORE.stop();
 
         // Se o aplicativo tem uma UI, chama o método remove() para limpeza adequada
         if (appInfo.UI && typeof appInfo.UI.remove === 'function') {
@@ -312,7 +326,7 @@ export class AppManager {
         console.log(`Aplicativo (instanceId: ${instanceId}) removido.`);
     }
 
-    killAll() {
+    async killAll() {
         const instanceIdsToKill = [];
 
         for (const [instanceId, appInfo] of this.runningApps.entries()) {
@@ -321,9 +335,8 @@ export class AppManager {
             }
         }
 
-        instanceIdsToKill.forEach(instanceId => {
-            this.stopApp(instanceId);
-        });
+        // Use Promise.all para aguardar todos os stops em paralelo
+        await Promise.all(instanceIdsToKill.map(instanceId => this.stopApp(instanceId)));
 
         console.log(`Todos os aplicativos de janela e headless foram encerrados.`);
 

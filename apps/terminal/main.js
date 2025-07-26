@@ -33,6 +33,9 @@ export default class TerminalApp extends BaseApp {
         this.historyIndex = -1;
         this.commands = {}; // Inicializa o objeto de comandos da instância
 
+        // Referência ao sistema de arquivos
+        this.fs = window.unkayFileSystem?.fs || null;
+
         // Explicitamente bind methods to ensure 'this' context
         // Bind apenas os métodos que serão passados como callbacks para listeners de evento ou outras funções
         this.writeLine = this.writeLine.bind(this);
@@ -40,6 +43,19 @@ export default class TerminalApp extends BaseApp {
         this.processCommand = this.processCommand.bind(this); // Usado em handleKeydown
         this.handleKeydown = this.handleKeydown.bind(this); // Usado em addEventListener
         this.scrollToBottom = this.scrollToBottom.bind(this); // Usado internamente
+        this.updatePrompt = this.updatePrompt.bind(this); // Atualiza o prompt quando diretório muda
+    }
+
+    /**
+     * Atualiza o prompt do terminal com usuário e diretório atual
+     */
+    updatePrompt() {
+        if (this.terminalPromptElement) {
+            const promptText = authSystem.getAPI().getUserPrompt();
+            const currentDir = this.fs ? this.fs.pwd() : '~';
+            const dirDisplay = currentDir === '/home/user' ? '~' : currentDir;
+            this.terminalPromptElement.textContent = `${promptText}:${dirDisplay}$`;
+        }
     }
 
     /**
@@ -107,8 +123,10 @@ export default class TerminalApp extends BaseApp {
         console.log(`[${this.appName}] Processando comando: "${commandLine}"`);
 
         const user = authSystem.getAPI().getUserPrompt();
+        const currentDir = this.fs ? this.fs.pwd() : '~';
+        const dirDisplay = currentDir === '/home/user' ? '~' : currentDir;
 
-        this.writeLine(`<span class="terminal-prompt">${user}:~$</span> ${commandLine}`, 'input');
+        this.writeLine(`<span class="terminal-prompt">${user}:${dirDisplay}$</span> ${commandLine}`, 'input');
         this.commandHistory.unshift(commandLine); // Adiciona ao início do histórico
         this.historyIndex = -1; // Reseta o índice do histórico
 
@@ -135,6 +153,10 @@ export default class TerminalApp extends BaseApp {
                 if (result) {
                     this.writeLine(result);
                 }
+                
+                // Atualiza o prompt após comandos que podem mudar o diretório
+                this.updatePrompt();
+                
                 console.log(`[${this.appName}] Comando ${commandName} executado com sucesso`);
             } catch (error) {
                 console.error(`[${this.appName}] Erro ao executar comando ${commandName}:`, error);
@@ -190,20 +212,14 @@ export default class TerminalApp extends BaseApp {
         this.terminalInputLine = this.$('.terminal-input-line');
         this.terminalPromptElement = this.$('#terminalPrompt');
 
-        // Atualiza o prompt dinamicamente com o valor do AuthSystem
-        if (this.terminalPromptElement) {
-            const promptText = authSystem.getAPI().getUserPrompt();
-            this.terminalPromptElement.textContent = `${promptText}:~$`;
-        }
+        // Atualiza o prompt dinamicamente com o valor do AuthSystem e diretório atual
+        this.updatePrompt();
 
         // Listener para mudanças de autenticação
         const api = authSystem.getAPI();
         if (api && typeof api.on === 'function') {
             this._authChangeHandler = () => {
-                if (this.terminalPromptElement) {
-                    const promptText = api.getUserPrompt();
-                    this.terminalPromptElement.textContent = `${promptText}:~$`;
-                }
+                this.updatePrompt();
             };
             api.on('change', this._authChangeHandler);
         }

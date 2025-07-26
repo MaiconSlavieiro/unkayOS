@@ -61,6 +61,9 @@ export class WindowLayerManager {
 
         // Configura z-index das bordas de redimensionamento
         this.setResizeBordersLayer(element);
+        
+        // Configura z-index dos botões da barra superior
+        this.setTopBarButtonsLayer(element);
 
         console.log(`[WindowLayerManager] Janela ${instanceId} movida para frente com z-index: ${newZIndex}`);
     }
@@ -105,6 +108,9 @@ export class WindowLayerManager {
                 windowData.element.style.zIndex = newZIndex;
                 // Configura z-index das bordas de redimensionamento
                 this.setResizeBordersLayer(windowData.element);
+                
+                // Configura z-index dos botões da barra superior
+                this.setTopBarButtonsLayer(windowData.element);
             } else {
                 // Remove janela se elemento não existe mais
                 this.windowStack.delete(instanceId);
@@ -233,6 +239,38 @@ export class WindowLayerManager {
         });
 
         console.log(`[WindowLayerManager] ${resizeBorders.length} bordas de redimensionamento configuradas com z-index: ${borderZIndex}`);
+    }
+
+    /**
+     * Configura z-index dos botões da barra superior
+     * Os botões precisam estar sempre visíveis e clicáveis acima do conteúdo
+     * @param {HTMLElement} windowElement - Elemento da janela pai
+     */
+    setTopBarButtonsLayer(windowElement) {
+        if (!windowElement) {
+            return;
+        }
+
+        const windowData = this.windowStack.get(windowElement.id);
+        if (!windowData) {
+            console.warn(`[WindowLayerManager] Janela ${windowElement.id} não encontrada no stack para configurar botões`);
+            return;
+        }
+
+        // Encontra todos os botões da barra superior
+        const topBarButtons = windowElement.querySelectorAll(
+            '.app__top_bar__close_button, .app__top_bar__min_button, .app__top_bar__max_button'
+        );
+
+        // Define z-index dos botões para 2 níveis acima do conteúdo da janela
+        // (1 nível acima das bordas de redimensionamento)
+        const buttonZIndex = windowData.zIndex + 2;
+        
+        topBarButtons.forEach(button => {
+            button.style.zIndex = buttonZIndex;
+        });
+
+        console.log(`[WindowLayerManager] ${topBarButtons.length} botões da barra superior configurados com z-index: ${buttonZIndex}`);
     }
 
     /**

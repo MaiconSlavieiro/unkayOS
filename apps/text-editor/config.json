@@ -1,0 +1,16 @@
+{
+  "app_name": "Editor de Texto",
+  "icon_url": "icon.svg", 
+  "dirApp": "index.html",
+  "jsFile": "main.js",
+  "styleFile": "style.css",
+  "mode": "system_window",
+  "width": "900px",
+  "height": "700px",
+  "x_position": "5vw",
+  "y_position": "5vh",
+  "minWidth": 600,
+  "minHeight": 400,
+  "autorun": false,
+  "hidden": false
+}

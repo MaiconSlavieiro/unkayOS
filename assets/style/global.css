@@ -33,10 +33,18 @@ body {
   overflow: hidden;
 }
 
+/* Desktop background */
+#desktop {
+  background-image: url('/assets/images/wallpaper_01.jpg');
+  background-size: cover;
+  background-position: center;
+  background-repeat: no-repeat;
+}
+
 /* Scrollbar personalizada */
 ::-webkit-scrollbar {
-  width: 10px;
-  height: 10px;
+  width: var(--size-small-icon);
+  height: var(--size-small-icon);
 }
 ::-webkit-scrollbar-track {
   background: var(--color-dark-primary-middle-opacity);
@@ -58,10 +66,13 @@ body {
   display: flex;
   align-items: center;
   justify-content: center;
+  font-family: var(--font-family-base);
+  transition: var(--transition-ease);
 }
 .button.large {
   width: 15vw;
-  height: 40px;
+  height: var(--spacing-xl);
+  padding: var(--spacing-sm) var(--spacing-md);
 }
 .button.light {
   background-color: var(--color-light-primary);
@@ -94,8 +105,8 @@ body {
   backdrop-filter: blur(var(--blur-intensity));
   -webkit-backdrop-filter: blur(var(--blur-intensity));
   border-top-right-radius: var(--border-radius-md);
-  box-shadow: 2px 2px 5px var(--shadow-color);
-  padding: 10px 0;
+  box-shadow: var(--spacing-sm) var(--spacing-sm) var(--spacing-xs) var(--shadow-color);
+  padding: var(--spacing-sm) 0;
 }
 .menu_apps.show {
   display: block;
@@ -103,25 +114,25 @@ body {
 .menu_apps__app {
   display: flex;
   align-items: center;
-  height: 45px;
-  padding: 0 20px;
+  height: var(--size-topbar-height);
+  padding: 0 var(--spacing-lg);
   color: var(--color-light-primary);
-  transition: background-color 0.2s ease;
+  transition: var(--transition-ease);
 }
 .menu_apps__app:hover {
   background-color: var(--color-dark-primary-high-opacity);
   cursor: pointer;
 }
 .menu_apps__app__icon {
-  width: 30px;
-  height: 30px;
-  padding: 5px;
-  margin-right: 10px;
+  width: var(--spacing-xl);
+  height: var(--spacing-xl);
+  padding: var(--spacing-xs);
+  margin-right: var(--spacing-sm);
 }
 .menu_apps__app__name {
   width: 100%;
-  padding: 5px;
-  font-size: 1.1em;
+  padding: var(--spacing-xs);
+  font-size: var(--font-size-lg);
 }
 
 /* Estilos da taskbar foram movidos para o aplicativo taskbar */
@@ -134,9 +145,19 @@ body {
   border-radius: var(--border-radius-md);
   overflow: hidden; /* Mantido para preservar border-radius */
   /* z-index removido - será dinâmico via WindowLayerManager */
-  opacity: 0.9;
+  opacity: var(--opacity-high);
   backdrop-filter: blur(var(--blur-intensity));
   -webkit-backdrop-filter: blur(var(--blur-intensity));
+}
+
+/* Indicação visual de janela ativa para eventos de teclado */
+.app[data-keyboard-active="true"] .app__top_bar {
+  background: linear-gradient(90deg, var(--color-primary-base), var(--color-dark-primary));
+}
+
+.desktop-app[data-keyboard-active="true"] {
+  outline: 1px solid var(--color-primary-base);
+  outline-offset: -1px;
 }
 
 /* Aplicativos de Desktop - parte fundamental do ambiente */
@@ -158,7 +179,7 @@ body {
 
 .app.dragging {
   /* z-index definido via WindowLayerManager durante arrasto */
-  opacity: 0.8; /* Indicação visual durante arrasto */
+  opacity: var(--opacity-medium); /* Indicação visual durante arrasto */
 }
 
 .app.minimized {
@@ -185,7 +206,7 @@ body {
 }
 .app__board_right,
 .app__board_left {
-  width: 5px;
+  width: var(--size-resize-handle);
   height: 100%;
 }
 .app__board_right {
@@ -199,7 +220,7 @@ body {
 .app__board_top,
 .app__board_bottom {
   width: 100%;
-  height: 5px;
+  height: var(--size-resize-handle);
 }
 .app__board_top {
   top: 0;
@@ -213,8 +234,8 @@ body {
 .app__board_top-right,
 .app__board_bottom-left,
 .app__board_bottom-right {
-  width: 15px;
-  height: 15px;
+  width: var(--size-button);
+  height: var(--size-button);
   /* z-index relativo - sempre acima da própria janela */
   z-index: 15;
 }
@@ -241,49 +262,54 @@ body {
 
 /* Barra superior da janela */
 .app__top_bar {
-  height: 30px;
+  height: var(--spacing-xl);
   background-color: var(--color-dark-primary);
   display: flex;
   align-items: center;
   justify-content: flex-end;
   cursor: grab;
+  position: relative;
+  /* z-index será definido dinamicamente pelo WindowLayerManager */
 }
 .app__top_bar__app_name {
   width: 100%;
   height: 100%;
   color: var(--color-light-primary);
-  font-size: 11pt;
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family-base);
   display: flex;
   align-items: center;
-  padding: 0 10px;
+  padding: 0 var(--spacing-sm);
   flex-grow: 1;
 }
 .app__top_bar__close_button,
 .app__top_bar__min_button,
 .app__top_bar__max_button {
-  width: 15px;
-  height: 15px;
-  min-width: 15px;
-  min-height: 15px;
-  border-radius: 50%;
-  margin-right: 8px;
+  width: var(--size-button);
+  height: var(--size-button);
+  min-width: var(--size-button);
+  min-height: var(--size-button);
+  border-radius: var(--border-radius-circle);
+  margin-right: var(--spacing-sm);
   cursor: pointer;
-  transition: background-color 0.2s ease;
+  transition: var(--transition-ease);
+  position: relative;
+  /* z-index será definido dinamicamente pelo WindowLayerManager */
 }
 .app__top_bar__close_button {
-  background-color: #ff5f56;
+  background-color: var(--color-window-close);
 }
 .app__top_bar__min_button {
-  background-color: #ffbd2e;
+  background-color: var(--color-window-minimize);
 }
 .app__top_bar__max_button {
-  background-color: #27c93f;
+  background-color: var(--color-window-maximize);
 }
 
 .app__content {
   display: flex;
   width: 100%;
-  height: calc(100% - 30px);
+  height: calc(100% - var(--spacing-xl));
   padding-top: 0;
   background-color: var(--color-dark-primary-middle-opacity);
 }
@@ -291,4 +317,142 @@ body {
 .custom-ui-app {
   /* Aplicativos com UI personalizada - z-index gerenciado via WindowLayerManager */
   position: relative;
+}
+
+/* ==================================================
+   LOADING SYSTEM STYLES
+   ================================================== */
+
+.unkay-loading-overlay {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: var(--color-dark-primary-high-opacity);
+  backdrop-filter: blur(var(--blur-intensity));
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  z-index: 1000;
+  opacity: 1;
+  transition: var(--transition-ease);
+}
+
+.unkay-loading-overlay.fade-out {
+  opacity: 0;
+}
+
+.unkay-loading-overlay.completed .unkay-loading-fill {
+  background: linear-gradient(90deg, var(--color-primary-base), var(--color-success)) !important;
+}
+
+.unkay-loading-overlay.error .unkay-loading-fill {
+  background: linear-gradient(90deg, var(--color-error), var(--color-accent-highlight)) !important;
+}
+
+.unkay-loading-container {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  gap: var(--spacing-md);
+  padding: var(--spacing-xl);
+  max-width: var(--size-content-max-width);
+  width: 90%;
+}
+
+.unkay-loading-bar {
+  position: relative;
+  width: 100%;
+  height: var(--spacing-xs);
+  background: var(--color-dark-primary-middle-opacity);
+  border-radius: var(--border-radius-sm);
+  overflow: hidden;
+}
+
+.unkay-loading-fill {
+  height: 100%;
+  background: linear-gradient(90deg, var(--color-primary-base), var(--color-info));
+  border-radius: var(--border-radius-sm);
+  transition: width 0.3s ease;
+  position: relative;
+}
+
+.unkay-loading-fill.completed {
+  background: linear-gradient(90deg, var(--color-primary-base), var(--color-success));
+}
+
+.unkay-loading-fill.error {
+  background: linear-gradient(90deg, var(--color-error), #dc2626);
+}
+
+.unkay-loading-glow {
+  position: absolute;
+  top: 0;
+  left: 0;
+  right: 0;
+  bottom: 0;
+  background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+  animation: unkay-shimmer 2s infinite;
+}
+
+@keyframes unkay-shimmer {
+  0% { transform: translateX(-100%); }
+  100% { transform: translateX(100%); }
+}
+
+.unkay-loading-text {
+  color: var(--color-text-on-dark);
+  font-size: var(--font-size-sm);
+  font-family: var(--font-family-base);
+  text-align: center;
+  opacity: var(--opacity-medium);
+}
+
+.unkay-loading-overlay.error .unkay-loading-text {
+  color: var(--color-error);
+}
+
+.unkay-loading-overlay.completed .unkay-loading-text {
+  color: var(--color-success);
+}
+
+/* ==================================================
+   LAZY LOADING STYLES
+   ================================================== */
+
+.lazy-loading {
+  opacity: 0;
+  transition: var(--transition-ease);
+}
+
+.lazy-loaded {
+  opacity: 1;
+}
+
+.lazy-error {
+  opacity: var(--opacity-low);
+  filter: grayscale(100%);
+}
+
+.error-message {
+  color: var(--color-error);
+  text-align: center;
+  padding-top: var(--spacing-lg);
+  font-family: var(--font-family-base);
+}
+
+.icon-loaded {
+  animation: fade-in var(--transition-ease);
+}
+
+@keyframes fade-in {
+  from { opacity: 0; }
+  to { opacity: 1; }
+}
+
+/* Drag behavior utilities */
+.dragging-disabled {
+  user-select: none;
+  pointer-events: none;
 }

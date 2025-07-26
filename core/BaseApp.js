@@ -1,4 +1,4 @@
-// core/BaseApp.js - v1.0.2 
+// core/BaseApp.js - v1.0.3
 
 /**
  * Classe base para todos os aplicativos do sistema.
@@ -7,7 +7,9 @@
  * - IDs em HTML dos apps são apenas para escopo local.
  * - Métodos de ciclo de vida: onRun() para inicialização, onCleanup() para limpeza.
  * - Use os utilitários this.$(selector) e this.$$(selector) para acessar elementos do DOM local.
+ * - Use this.registerKeyboardShortcut() para atalhos de teclado seguros.
  */
+
 export class BaseApp {
     /**
      * Construtor da BaseApp.
@@ -25,6 +27,10 @@ export class BaseApp {
         this.setInterval = standardAPIs.setInterval;
         this.clearTimeout = standardAPIs.clearTimeout;
         this.clearInterval = standardAPIs.clearInterval;
+        this.appManager = standardAPIs.appManager;
+        // Sistema de arquivos disponível para todos os apps
+        this.fileSystem = standardAPIs.fileSystem;
+        this.fs = standardAPIs.fs;
         // O elemento HTML que contém o conteúdo do aplicativo.
         this.appContentRoot = appContentRoot;
         // O elemento desktop para referência de posicionamento e drag and drop
@@ -82,8 +88,197 @@ export class BaseApp {
      * Método a ser sobrescrito pelos aplicativos para limpeza de recursos.
      * É chamado quando o aplicativo é encerrado.
      */
-    onCleanup() {
+    async onCleanup() {
+        // Remove automaticamente todos os listeners de teclado registrados
+        try {
+            let keyboardManager = null;
+            
+            // Primeiro tenta usar o SystemManager se disponível
+            if (window.systemManager && window.systemManager.isInitialized) {
+                keyboardManager = window.systemManager.getSystem('keyboardManager');
+            }
+            
+            // Fallback para window global
+            if (!keyboardManager && window.keyboardManager) {
+                keyboardManager = window.keyboardManager;
+            }
+            
+            // Fallback para importação dinâmica
+            if (!keyboardManager) {
+                const imported = await import('./KeyboardManager.js');
+                keyboardManager = imported.keyboardManager;
+            }
+            
+            if (keyboardManager) {
+                keyboardManager.removeAppListeners(this.instanceId);
+            }
+        } catch (error) {
+            console.warn(`[${this.appName}] Erro ao limpar listeners de teclado:`, error);
+        }
+
+        // Limpa listeners fallback se existirem
+        if (this._fallbackListeners) {
+            this._fallbackListeners.forEach(({ listener, element, event }) => {
+                element.removeEventListener(event, listener);
+            });
+            this._fallbackListeners = [];
+        }
+
         console.warn(`[${this.appName} - ${this.instanceId}] Método onCleanup() não implementado na classe base. Considere limpar listeners e recursos aqui.`);
+    }
+
+    /**
+     * Registra um atalho de teclado seguro para esta instância do app.
+     * O atalho só será executado quando esta janela estiver ativa.
+     * 
+     * @param {string|string[]} keys - Combinação de teclas (ex: 'ctrl+s', ['ctrl+s', 'ctrl+shift+s'])
+     * @param {function} callback - Função a ser chamada quando o atalho for pressionado
+     * @param {object} options - Opções adicionais
+     */
+    async registerKeyboardShortcut(keys, callback, options = {}) {
+        try {
+            let keyboardManager = null;
+            
+            // Primeiro tenta usar o SystemManager se disponível
+            if (window.systemManager && window.systemManager.isInitialized) {
+                keyboardManager = window.systemManager.getSystem('keyboardManager');
+            }
+            
+            // Fallback para window global
+            if (!keyboardManager && window.keyboardManager) {
+                keyboardManager = window.keyboardManager;
+            }
+            
+            // Fallback para importação dinâmica
+            if (!keyboardManager) {
+                const imported = await import('./KeyboardManager.js');
+                keyboardManager = imported.keyboardManager;
+            }
+            
+            if (keyboardManager) {
+                keyboardManager.registerShortcut(this.instanceId, keys, callback, options);
+                return;
+            }
+            
+            // Fallback para listener tradicional
+            console.warn(`[${this.appName}] KeyboardManager não disponível, usando listener tradicional`);
+            this.registerFallbackKeyboardListener(keys, callback, options);
+        } catch (error) {
+            console.warn(`[${this.appName}] Erro ao registrar atalho de teclado:`, error);
+            this.registerFallbackKeyboardListener(keys, callback, options);
+        }
+    }
+
+    /**
+     * Fallback para apps que precisam de atalhos quando o KeyboardManager não está disponível
+     */
+    registerFallbackKeyboardListener(keys, callback, options = {}) {
+        const listener = (event) => {
+            if (!this.appContentRoot || !this.appContentRoot.contains(event.target)) return;
+            
+            const keyArray = Array.isArray(keys) ? keys : [keys];
+            const matched = keyArray.some(keyCombo => {
+                const parts = keyCombo.toLowerCase().split('+');
+                const key = parts.pop();
+                
+                const needsCtrl = parts.includes('ctrl');
+                const needsShift = parts.includes('shift');
+                const needsAlt = parts.includes('alt');
+                const needsMeta = parts.includes('meta');
+
+                return event.key.toLowerCase() === key &&
+                       event.ctrlKey === needsCtrl &&
+                       event.shiftKey === needsShift &&
+                       event.altKey === needsAlt &&
+                       event.metaKey === needsMeta;
+            });
+
+            if (matched) {
+                if (options.preventDefault !== false) event.preventDefault();
+                if (options.stopPropagation !== false) event.stopPropagation();
+                callback(event);
+            }
+        };
+
+        document.addEventListener('keydown', listener);
+        
+        // Armazena para limpeza posterior
+        if (!this._fallbackListeners) this._fallbackListeners = [];
+        this._fallbackListeners.push({ listener, element: document, event: 'keydown' });
+    }
+
+    /**
+     * Registra um listener de teclado customizado para esta instância.
+     * O listener só será executado quando esta janela estiver ativa.
+     * 
+     * @param {string} eventType - Tipo do evento ('keydown' ou 'keyup')
+     * @param {function} listener - Função listener
+     * @param {object} options - Opções adicionais
+     */
+    async registerKeyboardListener(eventType, listener, options = {}) {
+        try {
+            let keyboardManager = null;
+            
+            // Primeiro tenta usar o SystemManager se disponível
+            if (window.systemManager && window.systemManager.isInitialized) {
+                keyboardManager = window.systemManager.getSystem('keyboardManager');
+            }
+            
+            // Fallback para window global
+            if (!keyboardManager && window.keyboardManager) {
+                keyboardManager = window.keyboardManager;
+            }
+            
+            // Fallback para importação dinâmica
+            if (!keyboardManager) {
+                const imported = await import('./KeyboardManager.js');
+                keyboardManager = imported.keyboardManager;
+            }
+            
+            if (keyboardManager) {
+                keyboardManager.registerKeyboardListener(this.instanceId, eventType, listener, options);
+            } else {
+                console.warn(`[${this.appName}] KeyboardManager não disponível, listener não registrado`);
+            }
+        } catch (error) {
+            console.warn(`[${this.appName}] Erro ao registrar listener de teclado:`, error);
+        }
+    }
+
+    /**
+     * Verifica se esta instância está atualmente ativa (com foco)
+     * @returns {boolean}
+     */
+    async isActive() {
+        try {
+            let keyboardManager = null;
+            
+            // Primeiro tenta usar o SystemManager se disponível
+            if (window.systemManager && window.systemManager.isInitialized) {
+                keyboardManager = window.systemManager.getSystem('keyboardManager');
+            }
+            
+            // Fallback para window global
+            if (!keyboardManager && window.keyboardManager) {
+                keyboardManager = window.keyboardManager;
+            }
+            
+            // Fallback para importação dinâmica
+            if (!keyboardManager) {
+                const imported = await import('./KeyboardManager.js');
+                keyboardManager = imported.keyboardManager;
+            }
+            
+            if (keyboardManager) {
+                return keyboardManager.isInstanceActive(this.instanceId);
+            }
+            
+            // Fallback básico - verifica se a janela tem foco
+            return this.element && this.element.contains(document.activeElement);
+        } catch (error) {
+            console.warn(`[${this.appName}] Erro ao verificar se app está ativo:`, error);
+            return false;
+        }
     }
 
     /**

@@ -1,7 +1,8 @@
-// /core/AppCore.js - v1.0.25 
+// /core/AppCore.js - v1.0.26
 
 import { BaseApp } from './BaseApp.js';
 import { generateUniqueId } from './utils/generateUniqueId.js';
+import eventBus from './eventBus.js';
 
 export class AppCore {
     constructor(appData) { // Agora recebe appData já resolvido
@@ -51,9 +52,11 @@ export class AppCore {
             },
             clearInterval: (id) => {
                 clearInterval(id);
-                this.managedIntervals.delete(id);
             },
-            appManager: window.appManager
+            appManager: window.systemManager?.getSystem('appManager') || window.appManager,
+            // Sistema de arquivos disponível para todos os apps
+            fileSystem: window.systemManager?.getSystem('fileSystem') || window.unkayFileSystem?.fileSystem,
+            fs: window.systemManager?.getSystem('fs') || window.unkayFileSystem?.fs
         };
 
         // Carrega o módulo JS do aplicativo e instancia a classe BaseApp (ou sua extensão)
@@ -62,7 +65,22 @@ export class AppCore {
         if (this.jsFile) {
             try {
                 console.log(`[AppCore] Carregando módulo JS: ${this.jsFile}`);
+                
+                // Emite progresso do carregamento do JS
+                eventBus.emit('app:loading:progress', { 
+                    instanceId: this.instanceId, 
+                    progress: 50, 
+                    message: 'Carregando lógica do aplicativo...' 
+                });
+
                 const module = await import(this.jsFile);
+                
+                eventBus.emit('app:loading:progress', { 
+                    instanceId: this.instanceId, 
+                    progress: 75, 
+                    message: 'Inicializando aplicativo...' 
+                });
+
                 if (typeof module.default === "function" && module.default.prototype instanceof BaseApp) {
                     this.appInstance = new module.default(this, standardAPIs);
                     // Lê o schema de parâmetros, se existir
@@ -75,15 +93,44 @@ export class AppCore {
                     }
                     // Método para expor o schema
                     this.getParametersSchema = () => this.parametersSchema;
+                    
+                    eventBus.emit('app:loading:progress', { 
+                        instanceId: this.instanceId, 
+                        progress: 100, 
+                        message: 'Aplicativo inicializado' 
+                    });
+
+                    eventBus.emit('app:loading:complete', { 
+                        instanceId: this.instanceId, 
+                        resourceType: 'js' 
+                    });
+
                     console.log(`[AppCore] Instância do app ${this.app_name} criada com sucesso`);
                 } else {
                     // Para apps que não estendem BaseApp, eles ainda podem ter seu HTML/CSS/JS injetado,
                     // mas não terão acesso às APIs ou ao ciclo de vida onRun/onCleanup.
                     console.warn(`Módulo JS de ${this.app_name} não exporta uma classe padrão que estende BaseApp. O app pode funcionar, mas não terá acesso às APIs do sistema ou ao ciclo de vida do app.`);
+                    
+                    eventBus.emit('app:loading:complete', { 
+                        instanceId: this.instanceId, 
+                        resourceType: 'js' 
+                    });
                 }
             } catch (e) {
                 console.error(`Erro ao carregar jsFile do app ${this.app_name}:`, e);
+                
+                eventBus.emit('app:loading:error', { 
+                    instanceId: this.instanceId, 
+                    error: e, 
+                    resourceType: 'js' 
+                });
             }
+        } else {
+            // Marca JS como concluído se não houver arquivo JS
+            eventBus.emit('app:loading:complete', { 
+                instanceId: this.instanceId, 
+                resourceType: 'js' 
+            });
         }
 
         switch (this.mode) {
@@ -132,9 +179,13 @@ export class AppCore {
         }
     }
 
-    stop() {
+    async stop() {
         if (this.appInstance && typeof this.appInstance.onCleanup === "function") {
-            this.appInstance.onCleanup();
+            // Suporta tanto onCleanup async quanto sync
+            const result = this.appInstance.onCleanup();
+            if (result && typeof result.then === 'function') {
+                await result;
+            }
         }
 
         this.managedTimeouts.forEach(id => {

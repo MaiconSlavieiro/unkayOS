@@ -1,9 +1,11 @@
-// /core/AppWindowSystem.js - v2.1.1 (Com WindowLayerManager integrado)
+// /core/AppWindowSystem.js - v2.1.2 (Com Sistema de Loading Integrado)
 
 import { positionManager } from './PositionManager.js';
 import { dragManager } from './DragManager.js';
 import eventBus from './eventBus.js';
 import { windowLayerManager } from './WindowLayerManager.js';
+import { loadingUI } from './LoadingUI.js';
+import { lazyResourceLoader } from './LazyResourceLoader.js';
 
 export class AppWindowSystem {
     constructor(core, desktopElement) { // Renomeado 'desktop' para 'desktopElement' para clareza
@@ -79,6 +81,7 @@ export class AppWindowSystem {
         this.appWindowElement = document.createElement('div');
         this.appWindowElement.classList.add('app', this.namespace);
         this.appWindowElement.id = this.instanceId; // Define o ID da instância na janela
+        this.appWindowElement.dataset.instanceId = this.instanceId; // Para o KeyboardManager
         this.appWindowElement.dataset.appType = 'system_window';
 
         // Aplica dimensões e posição iniciais em pixels
@@ -97,7 +100,7 @@ export class AppWindowSystem {
         topBar.appendChild(appNameSpan);
 
         // Habilita o arrastar na barra de título usando DragManager
-        this.dragCleanup = dragManager.enableDrag(this.appWindowElement, topBar, {
+        this.dragCleanup = dragManager.enableWindowDrag(this.appWindowElement, topBar, {
             onDragStart: (e) => {
                 // CORREÇÃO: Impede arrasto se a janela estiver maximizada
                 if (this.isMaximized) {
@@ -186,6 +189,9 @@ export class AppWindowSystem {
 
         // Carrega o conteúdo HTML e CSS do aplicativo DENTRO do elemento de conteúdo
         await this.loadAppContent();
+        
+        // IMPORTANTE: Configura z-index dos botões APÓS tudo estar carregado
+        windowLayerManager.setTopBarButtonsLayer(this.appWindowElement);
 
         // Chama onRun() na instância do aplicativo APÓS o elemento da janela ser anexado ao DOM
         // e o conteúdo HTML/CSS carregado.
@@ -231,32 +237,35 @@ export class AppWindowSystem {
     }
 
     async loadAppContent() {
-        // Carrega o HTML do aplicativo
-        if (this.core.dirApp) {
-            try {
-                const htmlResponse = await fetch(this.core.dirApp);
-                if (!htmlResponse.ok) {
-                    throw new Error(`HTTP error! status: ${htmlResponse.status} for ${this.core.dirApp}`);
-                }
-                const html = await htmlResponse.text();
-                this.appContentRoot.innerHTML = html; // Injeta diretamente no elemento de conteúdo
-            } catch (e) {
-                this.appContentRoot.innerHTML = `<p style="color: red; text-align: center; padding-top: 20px;">Erro ao carregar conteúdo HTML: ${e.message}</p>`;
-                console.error(`Erro carregando HTML do app ${this.appName}:`, e);
-            }
-        } else {
-            console.warn(`[${this.appName}] Nenhuma URL dirApp fornecida para o conteúdo da janela.`);
-            this.appContentRoot.innerHTML = '<p style="color: white; text-align: center; padding-top: 20px;">Nenhum conteúdo HTML para este aplicativo.</p>';
-        }
+        // Cria overlay de loading
+        const loadingOverlay = loadingUI.createLoadingOverlay(this.instanceId, this.appName);
+        this.appContentRoot.appendChild(loadingOverlay);
 
-        // Carrega o CSS do aplicativo (se styleFile estiver definido)
-        if (this.core.styleFile) {
-            try {
-                const styleResponse = await fetch(this.core.styleFile);
-                if (!styleResponse.ok) {
-                    throw new Error(`HTTP error! status: ${styleResponse.status} for ${this.core.styleFile}`);
-                }
-                const styleText = await styleResponse.text();
+        try {
+            // Carrega o HTML do aplicativo com loading progressivo
+            if (this.core.dirApp) {
+                const html = await lazyResourceLoader.loadHTMLProgressively(this.core.dirApp, this.instanceId);
+                
+                // Remove o overlay temporariamente para inserir conteúdo
+                this.appContentRoot.removeChild(loadingOverlay);
+                this.appContentRoot.innerHTML = html;
+                this.appContentRoot.appendChild(loadingOverlay);
+
+                // Configura lazy loading para imagens e ícones no conteúdo
+                lazyResourceLoader.setupLazyImages(this.appContentRoot);
+                lazyResourceLoader.setupLazyIcons(this.appContentRoot);
+
+            } else {
+                console.warn(`[${this.appName}] Nenhuma URL dirApp fornecida para o conteúdo da janela.`);
+                eventBus.emit('app:loading:complete', { 
+                    instanceId: this.instanceId, 
+                    resourceType: 'html' 
+                });
+            }
+
+            // Carrega o CSS do aplicativo com loading progressivo
+            if (this.core.styleFile) {
+                const styleText = await lazyResourceLoader.loadCSSProgressively(this.core.styleFile, this.instanceId);
 
                 // Aplica namespace ao CSS
                 const namespacedCSS = this.namespaceCSS(styleText);
@@ -269,9 +278,56 @@ export class AppWindowSystem {
 
                 console.log(`[AppWindowSystem] CSS carregado e namespaced para ${this.appName}`);
 
-            } catch (e) {
-                console.error(`Erro carregando CSS do app ${this.appName}:`, e);
+            } else {
+                // Marca CSS como concluído mesmo se não existir
+                eventBus.emit('app:loading:complete', { 
+                    instanceId: this.instanceId, 
+                    resourceType: 'css' 
+                });
             }
+
+            // Verifica se há fontes para carregar
+            const fontElements = this.appContentRoot.querySelectorAll('[data-font-family]');
+            if (fontElements.length > 0) {
+                eventBus.emit('app:loading:start', { 
+                    instanceId: this.instanceId, 
+                    resourceType: 'fonts' 
+                });
+
+                const fontPromises = Array.from(fontElements).map(async (element) => {
+                    const fontFamily = element.getAttribute('data-font-family');
+                    const fontUrl = element.getAttribute('data-font-url');
+                    
+                    if (fontFamily && fontUrl) {
+                        return lazyResourceLoader.setupLazyFonts([{
+                            family: fontFamily,
+                            url: fontUrl
+                        }]);
+                    }
+                });
+
+                await Promise.all(fontPromises);
+                
+                eventBus.emit('app:loading:complete', { 
+                    instanceId: this.instanceId, 
+                    resourceType: 'fonts' 
+                });
+            } else {
+                eventBus.emit('app:loading:complete', { 
+                    instanceId: this.instanceId, 
+                    resourceType: 'fonts' 
+                });
+            }
+
+        } catch (error) {
+            console.error(`Erro carregando recursos do app ${this.appName}:`, error);
+            this.appContentRoot.innerHTML = `<p class="error-message">Erro ao carregar recursos: ${error.message}</p>`;
+            
+            eventBus.emit('app:loading:error', { 
+                instanceId: this.instanceId, 
+                error, 
+                resourceType: 'general' 
+            });
         }
     }
 
@@ -562,6 +618,9 @@ export class AppWindowSystem {
         if (this.isMinimized) {
             this.restore();
         }
+        
+        // Atualiza z-index dos botões quando a janela ganha foco
+        windowLayerManager.setTopBarButtonsLayer(this.appWindowElement);
         
         // Emite evento para notificar mudança de estado apenas se não estava minimizada
         if (!this.isMinimized) {

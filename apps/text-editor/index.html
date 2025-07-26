@@ -1,0 +1,175 @@
+<!DOCTYPE html>
+<html lang="pt-BR">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Editor de Texto - UnkayOS</title>
+    <!-- Exemplo de fonte lazy -->
+    <link data-font-family="JetBrains Mono" data-font-url="/assets/fonts/jetbrains-mono.woff2" />
+</head>
+<body>
+    <div class="text-editor">
+        <!-- Barra de ferramentas -->
+        <div class="toolbar">
+            <div class="toolbar-section">
+                <button id="btn-new" class="toolbar-btn" title="Novo arquivo (Ctrl+N)">
+                    <span class="material-icons-outlined">description</span>
+                    <span>Novo</span>
+                </button>
+                <button id="btn-open" class="toolbar-btn" title="Abrir arquivo (Ctrl+O)">
+                    <span class="material-icons-outlined">folder_open</span>
+                    <span>Abrir</span>
+                </button>
+                <button id="btn-save" class="toolbar-btn" title="Salvar (Ctrl+S)">
+                    <span class="material-icons-outlined">save</span>
+                    <span>Salvar</span>
+                </button>
+                <button id="btn-save-as" class="toolbar-btn" title="Salvar como (Ctrl+Shift+S)">
+                    <span class="material-icons-outlined">save_as</span>
+                    <span>Salvar como</span>
+                </button>
+            </div>
+            
+            <div class="toolbar-separator"></div>
+            
+            <div class="toolbar-section">
+                <button id="btn-undo" class="toolbar-btn" title="Desfazer (Ctrl+Z)">
+                    <span class="material-icons-outlined">undo</span>
+                </button>
+                <button id="btn-redo" class="toolbar-btn" title="Refazer (Ctrl+Y)">
+                    <span class="material-icons-outlined">redo</span>
+                </button>
+            </div>
+            
+            <div class="toolbar-separator"></div>
+            
+            <div class="toolbar-section">
+                <button id="btn-find" class="toolbar-btn" title="Buscar (Ctrl+F)">
+                    <span class="material-icons-outlined">search</span>
+                </button>
+                <button id="btn-replace" class="toolbar-btn" title="Substituir (Ctrl+H)">
+                    <span class="material-icons-outlined">find_replace</span>
+                </button>
+            </div>
+        </div>
+        
+        <!-- Status bar -->
+        <div class="status-bar">
+            <div class="status-left">
+                <span id="file-status">Novo arquivo</span>
+                <span id="file-path"></span>
+            </div>
+            <div class="status-right">
+                <span id="cursor-position">Linha 1, Coluna 1</span>
+                <span id="selection-info"></span>
+                <span id="word-count">0 palavras</span>
+            </div>
+        </div>
+        
+        <!-- Área de busca -->
+        <div class="search-panel" id="search-panel" style="display: none;">
+            <div class="search-row">
+                <input type="text" id="search-input" placeholder="Buscar..." />
+                <button id="search-prev" class="search-btn" title="Anterior">
+                    <span class="material-icons-outlined">keyboard_arrow_up</span>
+                </button>
+                <button id="search-next" class="search-btn" title="Próximo">
+                    <span class="material-icons-outlined">keyboard_arrow_down</span>
+                </button>
+                <button id="search-close" class="search-btn" title="Fechar">
+                    <span class="material-icons-outlined">close</span>
+                </button>
+            </div>
+            <div class="search-row" id="replace-row" style="display: none;">
+                <input type="text" id="replace-input" placeholder="Substituir por..." />
+                <button id="replace-one" class="search-btn">Substituir</button>
+                <button id="replace-all" class="search-btn">Substituir Todos</button>
+            </div>
+        </div>
+        
+        <!-- Área principal do editor -->
+        <div class="editor-main">
+            <div class="file-sidebar" id="file-sidebar">
+                <div class="file-sidebar-header">
+                    <h3>Navegador de Arquivos</h3>
+                    <button id="toggle-sidebar" class="sidebar-toggle" title="Ocultar/Mostrar">−</button>
+                </div>
+                <div class="file-tree" id="file-tree">
+                    <!-- Árvore de arquivos será carregada aqui -->
+                </div>
+            </div>
+            
+            <div class="editor-container">
+                <div class="line-numbers" id="line-numbers">
+                    <div class="line-number">1</div>
+                </div>
+                <textarea 
+                    id="text-editor" 
+                    class="text-area"
+                    placeholder="Digite seu texto aqui..."
+                    spellcheck="false"
+                    autocomplete="off"
+                    autocorrect="off"
+                    autocapitalize="off"
+                ></textarea>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal para abrir arquivo -->
+    <div class="modal" id="open-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Abrir Arquivo</h3>
+                <button class="modal-close" id="open-modal-close">
+                    <span class="material-icons-outlined">close</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="file-browser">
+                    <div class="path-bar">
+                        <span>Caminho: </span>
+                        <span id="current-path">/home/user</span>
+                    </div>
+                    <div class="file-list" id="file-list">
+                        <!-- Lista de arquivos será preenchida dinamicamente -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <input type="text" id="file-name-input" placeholder="Nome do arquivo..." />
+                <button id="open-confirm" class="btn-primary">Abrir</button>
+                <button id="open-cancel" class="btn-secondary">Cancelar</button>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Modal para salvar como -->
+    <div class="modal" id="save-as-modal" style="display: none;">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Salvar Como</h3>
+                <button class="modal-close" id="save-as-modal-close">
+                    <span class="material-icons-outlined">close</span>
+                </button>
+            </div>
+            <div class="modal-body">
+                <div class="file-browser">
+                    <div class="path-bar">
+                        <span>Caminho: </span>
+                        <span id="save-current-path">/home/user</span>
+                    </div>
+                    <div class="file-list" id="save-file-list">
+                        <!-- Lista de arquivos será preenchida dinamicamente -->
+                    </div>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <input type="text" id="save-file-name-input" placeholder="Nome do arquivo..." />
+                <button id="save-as-confirm" class="btn-primary">Salvar</button>
+                <button id="save-as-cancel" class="btn-secondary">Cancelar</button>
+            </div>
+        </div>
+    </div>
+</body>
+</html>
