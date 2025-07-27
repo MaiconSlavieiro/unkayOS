@@ -21,9 +21,6 @@ export default class TaskbarApp extends BaseApp {
         this.systemTrayElement = null;
         this.desktopElement = null; // Referência ao desktop principal
         
-        // Referência ao menu de aplicativos
-        this.menuApps = null;
-        
         // Bind methods
         this.handleStartMenuClick = this.handleStartMenuClick.bind(this);
         this.handleDesktopClick = this.handleDesktopClick.bind(this);
@@ -47,13 +44,8 @@ export default class TaskbarApp extends BaseApp {
      * Manipula o clique no botão do menu iniciar.
      */
     handleStartMenuClick() {
-        console.log(`[${this.appName}] Clique no menu iniciar detectado`);
-        if (this.menuApps) {
-            console.log(`[${this.appName}] Menu de aplicativos encontrado, chamando onClick()`);
-            this.menuApps.onClick();
-        } else {
-            console.warn(`[${this.appName}] Menu de aplicativos não encontrado`);
-        }
+        // Usa event bus para comunicação desacoplada
+        eventBus.emit('menu:apps:toggle');
     }
 
     /**
@@ -62,9 +54,8 @@ export default class TaskbarApp extends BaseApp {
     handleDesktopClick(event) {
         // Verifica se o clique foi fora da taskbar
         if (!this.taskbarElement.contains(event.target)) {
-            if (this.menuApps) {
-                this.menuApps.close();
-            }
+            // Usa event bus para fechar menu
+            eventBus.emit('menu:apps:close');
         }
     }
 
@@ -199,14 +190,17 @@ export default class TaskbarApp extends BaseApp {
     /**
      * Inicializa o menu de aplicativos.
      */
+    /**
+     * Inicializa o menu de aplicativos.
+     */
     initializeMenuApps() {
         // Importa e cria o menu de aplicativos
         import('../../core/MenuApps.js').then(module => {
             const { menuApps } = module;
-            // O menu é criado no desktop principal
-            this.menuApps = new menuApps(this.desktopElement);
-            this.menuApps.init();
-            console.log(`[${this.appName}] Menu de aplicativos inicializado`);
+            
+            // O menu é criado no desktop principal e se auto-gerencia
+            const menuInstance = new menuApps(this.desktopElement);
+            menuInstance.init();
         }).catch(error => {
             console.error(`[${this.appName}] Erro ao inicializar menu de aplicativos:`, error);
         });
@@ -310,10 +304,9 @@ export default class TaskbarApp extends BaseApp {
             this.desktopElement.removeEventListener('click', this.handleDesktopClick);
         }
 
-        // Remove o menu de aplicativos
-        if (this.menuApps) {
-            this.menuApps.remove();
-        }
+        // O menu de aplicativos agora é auto-gerenciado via EventBus
+        // Emite evento para que o menu se limpe sozinho
+        eventBus.emit('menu:apps:cleanup');
 
         console.log(`[${this.appName}] Recursos da taskbar limpos`);
     }

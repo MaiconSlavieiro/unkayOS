@@ -131,10 +131,10 @@ export class AppManager {
                 // Se a janela perdeu o foco, remove do activeApp
                 this.activeAppInstanceId = null;
             }
-            
+
             // Propaga evento para a taskbar atualizar o ícone
             eventBus.emit('app:icon:update', { instanceId, state, isMinimized, isMaximized, isActive });
-            
+
             console.log(`[AppManager] Estado da janela ${instanceId} mudou para: ${state}`);
         });
 
@@ -202,10 +202,10 @@ export class AppManager {
         if (appData.mode === 'system_window') {
             // Inicia loading para JS se existir
             if (appData.jsFile) {
-                eventBus.emit('app:loading:start', { 
-                    instanceId: CORE.instanceId, 
-                    resourceType: 'js', 
-                    resourceUrl: appData.jsFile 
+                eventBus.emit('app:loading:start', {
+                    instanceId: CORE.instanceId,
+                    resourceType: 'js',
+                    resourceUrl: appData.jsFile
                 });
             }
         }
@@ -222,6 +222,15 @@ export class AppManager {
 
             console.log(`Aplicativo '${appData.app_name}' (instanceId: ${CORE.instanceId}) iniciado no modo: ${appData.mode}`);
             eventBus.emit('app:started', { appId, instanceId: CORE.instanceId });
+
+            // Para apps system_window, dar foco automaticamente após a criação
+            if (appData.mode === 'system_window') {
+                // Aguarda um frame para garantir que o DOM está pronto
+                requestAnimationFrame(() => {
+                    this.defineFirstPlaneApp(CORE.instanceId);
+                });
+            }
+
             return CORE.instanceId;
 
         }
@@ -258,7 +267,7 @@ export class AppManager {
                 if (value.CORE.instanceId === instanceId) {
                     this.activeAppInstanceId = value.CORE.instanceId;
                     value.UI.focus();
-                    
+
                     // NOVA FUNCIONALIDADE: Gerenciamento dinâmico de z-index
                     windowLayerManager.bringToFront(instanceId, value.UI.appWindowElement);
                 } else {

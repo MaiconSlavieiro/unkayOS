@@ -96,43 +96,235 @@ body {
 .menu_apps {
   background-color: var(--color-dark-primary-middle-opacity);
   min-height: 35vh;
+  max-height: 80vh;
   width: 20vw;
+  min-width: 280px;
   position: fixed;
   bottom: 50px;
   left: 0;
   display: none;
-  /* z-index definido via WindowLayerManager */
   backdrop-filter: blur(var(--blur-intensity));
   -webkit-backdrop-filter: blur(var(--blur-intensity));
   border-top-right-radius: var(--border-radius-md);
   box-shadow: var(--spacing-sm) var(--spacing-sm) var(--spacing-xs) var(--shadow-color);
-  padding: var(--spacing-sm) 0;
+  padding: var(--spacing-sm);
+  overflow-y: auto;
+  
+  /* Scrollbar personalizada */
+  scrollbar-width: thin;
+  scrollbar-color: var(--color-primary-base) transparent;
 }
-.menu_apps.show {
-  display: block;
+
+.menu_apps::-webkit-scrollbar {
+  width: 6px;
 }
-.menu_apps__app {
+
+.menu_apps::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.menu_apps::-webkit-scrollbar-thumb {
+  background-color: var(--color-primary-base);
+  border-radius: 3px;
+}
+
+/* Estado visível - Seletor limpo e simples */
+.menu_apps--visible {
+  display: flex;
+  flex-direction: column;
+}
+
+.menu_apps__header {
+  padding: var(--spacing-sm);
+  border-bottom: 1px solid var(--color-dark-primary-high-opacity);
+  margin-bottom: var(--spacing-sm);
+  flex-shrink: 0;
+}
+
+.menu_apps__search-container {
+  position: relative;
   display: flex;
   align-items: center;
-  height: var(--size-topbar-height);
-  padding: 0 var(--spacing-lg);
+  width: 100%;
+}
+
+.menu_apps__search-icon {
+  position: absolute;
+  left: var(--spacing-sm);
+  color: var(--color-text-secondary);
+  font-size: 1rem !important;
+  z-index: 1;
+  pointer-events: none;
+}
+
+.menu_apps__search {
+  width: 100%;
+  padding: var(--spacing-sm) var(--spacing-sm) var(--spacing-sm) 2.5rem;
+  background-color: var(--color-dark-primary-high-opacity);
+  border: 1px solid var(--color-primary-base);
+  border-radius: var(--border-radius-sm);
   color: var(--color-light-primary);
+  font-size: var(--font-size-md);
+  outline: none;
   transition: var(--transition-ease);
 }
-.menu_apps__app:hover {
-  background-color: var(--color-dark-primary-high-opacity);
+
+.menu_apps__search::placeholder {
+  color: var(--color-text-secondary);
+}
+
+.menu_apps__search:focus {
+  border-color: var(--color-primary-variation-1);
+  box-shadow: 0 0 0 2px rgba(55, 234, 232, 0.2);
+}
+
+.menu_apps__container {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(120px, 1fr));
+  gap: var(--spacing-sm);
+  flex: 1;
+  align-content: start;
+}
+
+.menu_apps__app {
+  display: flex;
+  flex-direction: column;
+  align-items: center;
+  justify-content: center;
+  min-height: 80px;
+  padding: var(--spacing-sm);
+  color: var(--color-light-primary);
+  transition: var(--transition-ease);
+  border-radius: var(--border-radius-sm);
   cursor: pointer;
+  text-align: center;
+  
+  /* Touch-friendly */
+  min-width: 100px;
+  min-height: 100px;
+  
+  /* Accessibility */
+  outline: none;
+}
+
+.menu_apps__app:hover,
+.menu_apps__app:focus {
+  background-color: var(--color-dark-primary-high-opacity);
+  transform: translateY(-2px);
+  box-shadow: 0 4px 8px var(--shadow-color);
+}
+
+.menu_apps__app:focus {
+  box-shadow: 0 0 0 2px var(--color-primary-base);
+}
+
+.menu_apps__app:active,
+.menu_apps__app.touch-active {
+  transform: translateY(0);
+  transition-duration: 0.1s;
+  background-color: var(--color-primary-base);
+  color: var(--color-dark-primary);
 }
 .menu_apps__app__icon {
-  width: var(--spacing-xl);
-  height: var(--spacing-xl);
-  padding: var(--spacing-xs);
-  margin-right: var(--spacing-sm);
+  width: 48px;
+  height: 48px;
+  margin-bottom: var(--spacing-xs);
+  transition: var(--transition-ease);
 }
+
+.menu_apps__app:hover .menu_apps__app__icon {
+  transform: scale(1.1);
+}
+
 .menu_apps__app__name {
-  width: 100%;
-  padding: var(--spacing-xs);
-  font-size: var(--font-size-lg);
+  font-size: var(--font-size-sm);
+  font-weight: 500;
+  line-height: 1.2;
+  overflow: hidden;
+  text-overflow: ellipsis;
+  display: -webkit-box;
+  -webkit-line-clamp: 2;
+  line-clamp: 2;
+  -webkit-box-orient: vertical;
+  max-width: 100%;
+}
+
+/* Media Queries para Responsividade */
+@media (max-width: 1024px) {
+  .menu_apps {
+    width: 30vw;
+    min-width: 320px;
+  }
+}
+
+@media (max-width: 768px) {
+  .menu_apps {
+    width: 90vw;
+    max-width: 400px;
+    left: 50%;
+    transform: translateX(-50%);
+    bottom: 60px;
+    border-radius: var(--border-radius-md);
+    max-height: 70vh;
+  }
+  
+  .menu_apps__container {
+    grid-template-columns: repeat(auto-fill, minmax(100px, 1fr));
+  }
+  
+  .menu_apps__app {
+    min-height: 90px;
+    min-width: 90px;
+  }
+  
+  .menu_apps__app__icon {
+    width: 40px;
+    height: 40px;
+  }
+  
+  .menu_apps__app__name {
+    font-size: var(--font-size-xs);
+  }
+}
+
+@media (max-width: 480px) {
+  .menu_apps {
+    width: 95vw;
+    gap: var(--spacing-xs);
+  }
+  
+  .menu_apps__container {
+    grid-template-columns: repeat(auto-fill, minmax(80px, 1fr));
+    gap: var(--spacing-xs);
+  }
+  
+  .menu_apps__app {
+    min-height: 80px;
+    min-width: 80px;
+    padding: var(--spacing-xs);
+  }
+  
+  .menu_apps__app__icon {
+    width: 32px;
+    height: 32px;
+  }
+}
+
+/* Detecção de dispositivos touch */
+@media (hover: none) and (pointer: coarse) {
+  .menu_apps__app {
+    min-height: 100px;
+    min-width: 100px;
+  }
+  
+  .menu_apps__app:hover {
+    transform: none;
+  }
+  
+  .menu_apps__app:active {
+    background-color: var(--color-primary-base);
+    color: var(--color-dark-primary);
+  }
 }
 
 /* Estilos da taskbar foram movidos para o aplicativo taskbar */
