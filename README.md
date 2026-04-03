@@ -1,521 +1,315 @@
-# unkayOS - Sistema Operacional Web Modular
+# unkayOS — Modular Web Operating System
 
-**unkayOS** é um sistema operacional web completo construído com tecnologias modernas, oferecendo uma experiência de desktop nativa no navegador com gerenciamento avançado de janelas, aplicativos modulares e arquitetura orientada a eventos.
+**unkayOS** is a fully-featured web operating system built with modern vanilla JavaScript and ES modules. It delivers a native desktop experience in the browser with advanced window management, modular applications, and an event-driven architecture.
 
-## 🌟 Características Principais
+## The Story
 
-### 🖼️ **Sistema de Janelas Avançado**
-- **WindowLayerManager**: Gerenciamento dinâmico de z-index com hierarquia inteligente
-- **Redimensionamento Completo**: Suporte a redimensionamento por bordas laterais e cantos
-- **Drag & Drop**: Arrastar janelas com prevenção inteligente para janelas maximizadas
-- **Múltiplas Instâncias**: Executar múltiplas instâncias do mesmo aplicativo simultaneamente
+unkayOS started as a personal learning project — a way to sharpen my web development skills by going all-in on vanilla JavaScript, no frameworks, no shortcuts. The idea was simple: build something real using just the fundamentals and see how far I could push it.
 
-### 🎯 **Arquitetura Orientada a Eventos**
-- **EventBus Global**: Comunicação desacoplada entre módulos
-- **Ciclo de Vida Controlado**: Inicialização e cleanup automático de aplicativos
-- **Sistema CLI**: Comandos de terminal integrados para controle do sistema
+What began as a playground for learning DOM manipulation, event handling, and CSS layout gradually turned into something bigger. As I kept building, I realized I wanted more than just a demo — I wanted a system where I could spin up small apps whenever a new idea hit me. A terminal emulator one week, a file manager the next, maybe a little game after that.
 
-### 🧩 **Aplicativos Modulares**
-- **BaseApp**: Classe base com isolamento de DOM e utilitários integrados
-- **Carregamento Dinâmico**: CSS e JavaScript carregados sob demanda
-- **Isolamento de Instância**: Cada instância possui escopo próprio
+So unkayOS evolved into a modular desktop environment that runs in the browser — a personal hub for experimenting with ideas. Each app is self-contained, follows the same simple pattern, and plugs into the system without touching the core. It's become the place where I prototype, explore, and learn by building things I'm curious about.
 
-### 🏗️ **Arquitetura Robusta**
-- **SystemManager**: Gerenciamento centralizado de estado e singletons
-- **Design System**: Tokens padronizados para consistência visual
-- **Inicialização em Fases**: Sistema de boot ordenado com dependências controladas
-- **Cleanup Automático**: Prevenção de vazamentos de memória
+The whole project is still vanilla JS by design. No React, no Vue, no Angular — just ES modules, a clean architecture, and the satisfaction of understanding every line of code that runs.
 
-## 📁 Estrutura do Projeto
+## Key Features
+
+### Window System
+- Dynamic z-index management with hierarchical layers (WindowLayerManager)
+- Full resize support via edges and corners
+- Drag & drop with smart prevention for maximized windows
+- Multiple simultaneous instances of the same app
+
+### Event-Driven Architecture
+- Global EventBus for decoupled module communication
+- Controlled lifecycle with automatic init and cleanup
+- Integrated CLI commands for system control
+
+### Modular Apps
+- BaseApp class with DOM isolation and built-in utilities
+- Dynamic loading of CSS and JavaScript on demand
+- Per-instance scoping
+
+### Robust Core
+- SystemManager for centralized state and singleton management
+- Design system with standardized tokens for visual consistency
+- Phased boot sequence with controlled dependencies
+- Automatic cleanup to prevent memory leaks
+
+## Project Structure
 
 ```
 unkayOS/
-├── index.html              # Ponto de entrada principal
-├── main.js                 # Inicialização do sistema (v2.0 - SystemManager)
-├── apps/                   # Aplicativos do sistema
-│   ├── apps.json          # Configuração de aplicativos
-│   ├── terminal/          # Terminal integrado
-│   ├── browser/           # Navegador web (theorb)
-│   ├── clock/             # Relógio e calendário
-│   ├── system-info/       # Informações do sistema
-│   ├── process-manager/   # Gerenciador de processos
-│   ├── taskbar/           # Barra de tarefas
-│   └── about/             # Sobre o sistema
-├── core/                   # Núcleo do sistema
-│   ├── SystemManager.js    # 🆕 Gerenciamento centralizado de estado
-│   ├── AppManager.js       # Gerenciamento de aplicativos
-│   ├── AppWindowSystem.js  # Sistema de janelas
-│   ├── WindowLayerManager.js # Gerenciamento de z-index
-│   ├── BaseApp.js          # Classe base para aplicativos (atualizada)
-│   ├── DragManager.js      # Sistema de arrastar
-│   ├── eventBus.js         # Sistema de eventos
-│   ├── AuthSystem.js       # Sistema de autenticação
-│   ├── KeyboardManager.js  # Gerenciamento de teclado
-│   ├── FileSystem.js       # Sistema de arquivos virtual
-│   ├── LoadingManager.js   # Gerenciamento de loading
-│   └── utils/              # Utilitários do sistema
-├── design-system/          # 🆕 Sistema de design padronizado
+├── index.html                # Main entry point
+├── main.js                   # System initialization (SystemManager)
+├── package.json              # Dev dependencies & npm scripts
+├── vite.config.js            # Vite build system & dev server
+├── eslint.config.js          # ESLint v9 flat config
+├── .prettierrc               # Prettier formatting config
+├── tsconfig.json             # TypeScript checkJs config
+├── apps/                     # System applications
+│   ├── apps.json             # App registry
+│   ├── terminal/             # Integrated terminal
+│   ├── browser/              # Web browser (theorb)
+│   ├── clock/                # Clock & calendar
+│   ├── system-info/          # System information
+│   ├── process-manager/      # Process manager
+│   ├── file-manager/         # File manager
+│   ├── text-editor/          # Text editor
+│   ├── taskbar/              # Taskbar
+│   └── about/                # About screen
+├── core/                     # System core
+│   ├── SystemManager.js      # Centralized state management
+│   ├── AppManager.js         # App lifecycle management
+│   ├── AppWindowSystem.js    # Window system
+│   ├── AppCustomUI.js        # Desktop UI apps
+│   ├── AppCore.js            # App core runtime
+│   ├── BaseApp.js            # Base class for apps
+│   ├── WindowLayerManager.js # Z-index management
+│   ├── DragManager.js        # Drag system
+│   ├── eventBus.js           # Event system
+│   ├── FileSystem.js         # Virtual filesystem
+│   ├── KeyboardManager.js    # Keyboard management
+│   ├── AuthSystem.js         # Authentication system
+│   ├── LoadingManager.js     # Loading management
+│   ├── LoadingUI.js          # Loading UI
+│   ├── LazyResourceLoader.js # Lazy resource loading
+│   ├── MenuApps.js           # App menu
+│   ├── PositionManager.js    # Window positioning
+│   ├── types/                # TypeScript type definitions (.d.ts)
+│   │   ├── BaseApp.d.ts
+│   │   ├── EventBus.d.ts
+│   │   ├── FileSystem.d.ts
+│   │   ├── AppManager.d.ts
+│   │   └── SystemManager.d.ts
+│   └── utils/                # System utilities
+├── design-system/            # Design system
 │   └── styles/
-│       ├── tokens.css      # Tokens de design centralizados
-│       ├── base.css        # Estilos base
-│       ├── typography.css  # Sistema tipográfico
-│       └── main.css        # Estilos principais
-├── docs/                   # 🆕 Documentação técnica
-│   ├── STATE_MANAGEMENT_GUIDE.md  # Guia do SystemManager
-│   ├── TOKEN_GUIDE.md             # Guia do Design System
-│   └── filesystem-guide.md        # Guia do sistema de arquivos
-├── assets/                 # Recursos estáticos
-│   ├── icons/             # Ícones do sistema e aplicativos
-│   ├── images/            # Imagens e wallpapers
-│   └── style/             # Estilos globais
-└── auth/                   # Sistema de autenticação
-    └── callback.html       # Callback OAuth
-```
-└── design-system/         # Sistema de design
-    └── styles/            # Tokens e componentes visuais
+│       ├── tokens.css        # Centralized design tokens
+│       ├── base.css          # Base styles
+│       ├── typography.css    # Typography system
+│       ├── icons.css         # Icon styles
+│       └── main.css          # Main styles
+├── docs/                     # Technical documentation
+│   ├── STATE_MANAGEMENT_GUIDE.md
+│   ├── TOKEN_GUIDE.md
+│   ├── FILE_SYSTEM_GUIDE.md
+│   └── LOADING_SYSTEM.md
+├── assets/                   # Static resources
+│   ├── icons/                # System & app icons
+│   ├── images/               # Images & wallpapers
+│   └── style/                # Global styles
+└── auth/                     # Authentication
+    └── callback.html         # OAuth callback
 ```
 
-## 🚀 Como Usar
+## Getting Started
 
-### Instalação Local
+### Prerequisites
+- Node.js 18+
+- npm
+
+### Development
 ```bash
-# Clone o repositório
+# Clone the repository
 git clone https://github.com/MaiconSlavieiro/unkayOS.git
-
-# Navegue para o diretório
 cd unkayOS
 
-# Inicie um servidor local (Python)
-python -m http.server 8000
+# Install dev dependencies
+npm install
 
-# Ou use Node.js
-npx serve .
+# Start the dev server with HMR
+npm run dev
 
-# Acesse no navegador
-http://localhost:8000
+# Open in browser
+http://localhost:5173
 ```
 
-### Sistema em Produção
-O unkayOS está disponível online em: [reversodoavesso.online](https://reversodoavesso.online)
+### Available Scripts
 
-## 🏗️ Arquitetura do Sistema
+| Script | Description |
+|--------|-------------|
+| `npm run dev` | Start Vite dev server with HMR |
+| `npm run build` | Production build with tree-shaking and sourcemaps |
+| `npm run preview` | Preview the production build |
+| `npm run test` | Run tests with Vitest |
+| `npm run test:watch` | Run tests in watch mode |
+| `npm run test:coverage` | Run tests with coverage report |
+| `npm run lint` | Lint with ESLint |
+| `npm run lint:fix` | Lint and auto-fix |
+| `npm run format` | Format with Prettier |
+| `npm run format:check` | Check formatting |
+| `npm run typecheck` | Type-check with TypeScript (checkJs) |
+| `npm run scaffold` | Scaffold a new app |
 
-### SystemManager (v2.0)
-O núcleo do unkayOS utiliza um gerenciador de estado centralizado que controla todo o ciclo de vida dos sistemas:
+### Production
+unkayOS is available online at: [reversodoavesso.online](https://reversodoavesso.online)
+
+## System Architecture
+
+### Boot Sequence
+SystemManager orchestrates initialization in 4 phases:
 
 ```javascript
-// Inicialização automatizada em 4 fases
 await systemManager.initialize(desktop);
 
-// Acesso padronizado aos sistemas
+// Access systems via SystemManager
 const appManager = systemManager.getSystem('appManager');
 const fileSystem = systemManager.getSystem('fileSystem');
 const keyboardManager = systemManager.getSystem('keyboardManager');
-
-// Monitoramento e estatísticas
-const stats = systemManager.getSystemStats();
 ```
 
-### Design System
-Sistema de tokens centralizados para consistência visual:
-
-```css
-/* Tokens padronizados em design-system/styles/tokens.css */
-:root {
-  --color-text-primary: #ffffff;
-  --color-background-primary: #1a1a1a;
-  --color-surface-secondary: #2a2a2a;
-  --spacing-medium: 16px;
-  --border-radius-medium: 8px;
-}
+### Window Layer Hierarchy
+```
+NOTIFICATION:     30000   # System notifications
+MODAL:           20000   # Modals and dialogs
+MENU:            15000   # Context menus
+TASKBAR:         10000   # Taskbar
+DRAGGING:         9000   # Elements being dragged
+WINDOWS_MAX:      8999   # Maximized windows
+WINDOWS_BASE:      100   # Normal windows (increments dynamically)
+DESKTOP_APPS:        5   # Desktop widgets
+DESKTOP_BACKGROUND:  0   # Wallpaper
 ```
 
-## 💻 Desenvolvimento de Aplicativos
+### System Events
+- `system:ready` — All systems initialized
+- `system:shutdown` — System shutting down
+- `app:start` / `app:stop` — Start/stop an app
+- `app:started` / `app:stopped` — App lifecycle notifications
+- `app:killall` — Kill all running apps
 
-### 1. Estrutura Básica de um App
+## Building Apps
 
-Cada aplicativo deve seguir esta estrutura:
+Every app follows the same structure:
+
 ```
-meu-app/
-├── config.json    # Configuração do aplicativo
-├── index.html     # Interface do usuário
-├── main.js        # Lógica principal
-├── style.css      # Estilos (usar tokens do design system)
-└── icon.svg       # Ícone do aplicativo
+my-app/
+├── config.json    # App configuration
+├── index.html     # UI markup
+├── main.js        # App logic (extends BaseApp)
+├── style.css      # Styles (use design tokens)
+└── icon.svg       # App icon
 ```
 
-### 2. Configuração (config.json)
+### config.json
 ```json
 {
-  "name": "Meu Aplicativo",
-  "description": "Descrição do aplicativo",
-  "version": "1.0.0",
-  "type": "user_app",
+  "app_name": "My App",
+  "icon_url": "icon.svg",
   "dirApp": "index.html",
   "jsFile": "main.js",
   "styleFile": "style.css",
-  "icon_url": "icon.svg",
-  "parameters": {
-    "url": {
-      "type": "string",
-      "description": "URL para abrir"
-    }
+  "mode": "system_window",
+  "width": "800px",
+  "height": "500px",
+  "autorun": false,
+  "hidden": false
+}
+```
+
+### main.js
+```javascript
+import { BaseApp } from '/core/BaseApp.js';
+
+export default class MyApp extends BaseApp {
+  onRun() {
+    const button = this.$('#my-button');
+    button.addEventListener('click', () => this.handleClick());
+
+    this.registerKeyboardShortcut('Ctrl+S', () => this.save());
+  }
+
+  onCleanup() {
+    // Automatic cleanup via SystemManager
+  }
+
+  handleClick() {
+    // Use this.$() for scoped DOM access
+    const output = this.$('#output');
+    output.textContent = 'Hello from unkayOS';
   }
 }
 ```
 
-### 3. Classe Principal (main.js)
+### DOM Isolation
 ```javascript
-import { BaseApp } from '/core/BaseApp.js';
+// Never do this in apps
+document.querySelector('#myButton');
 
-export class MeuApp extends BaseApp {
-    static parameters = {
-        url: { type: 'string', description: 'URL para abrir' }
-    };
-
-    onRun() {
-        // Inicialização do app
-        const button = this.$('#meu-botao');
-        button.addEventListener('click', this.handleClick.bind(this));
-        
-        // Registro de atalhos de teclado
-        this.registerKeyboardShortcut('Ctrl+S', () => {
-            this.salvarArquivo();
-        });
-    }
-
-    onCleanup() {
-        // Limpeza automática de recursos via SystemManager
-        // KeyboardManager limpa automaticamente os atalhos
-        // Remove listeners específicos do app se necessário
-    }
-
-    handleClick() {
-        // Lógica do app usando this.$(selector) para DOM local
-        // Acesso aos sistemas via SystemManager
-        const fileSystem = this.systems.fileSystem;
-        const appManager = this.systems.appManager;
-    }
-
-    // Suporte a CLI
-    static async runCli(args, writeLine) {
-        if (args.help) {
-            writeLine('Ajuda do aplicativo...');
-            return;
-        }
-        // Lógica CLI
-    }
-}
+// Always use scoped access
+this.$('#myButton');
 ```
 
-### 4. Estilos (style.css)
-```css
-/* Use tokens do design system */
-.meu-app {
-    background: var(--color-background-primary);
-    color: var(--color-text-primary);
-    padding: var(--spacing-medium);
-    border-radius: var(--border-radius-medium);
-}
-
-.meu-botao {
-    background: var(--color-surface-secondary);
-    border: 1px solid var(--color-border-primary);
-    color: var(--color-text-primary);
-    padding: var(--spacing-small) var(--spacing-medium);
-}
-
-.meu-botao:hover {
-    background: var(--color-surface-hover);
-}
-```
-
-### 4. Padrões de Desenvolvimento
-
-#### **Isolamento de DOM**
-```javascript
-// ❌ NUNCA faça isso
-document.getElementById('myButton')
-document.querySelector('.my-class')
-
-## 📚 Documentação Técnica
-
-### Guias Disponíveis
-- **[Guia do Gerenciamento de Estado](docs/STATE_MANAGEMENT_GUIDE.md)**: SystemManager e arquitetura centralizada
-- **[Guia do Design System](docs/TOKEN_GUIDE.md)**: Tokens padronizados e sistema de design
-- **[Guia do Sistema de Arquivos](docs/filesystem-guide.md)**: FileSystem virtual e operações
-
-### APIs do Sistema
-
-#### **Acesso aos Sistemas (v2.0)**
-```javascript
-// Novo: via SystemManager (recomendado)
-const appManager = systemManager.getSystem('appManager');
-const fileSystem = systemManager.getSystem('fileSystem');
-const keyboardManager = systemManager.getSystem('keyboardManager');
-
-// Compatibilidade: via window (legacy)
-const appManager = window.appManager;
-const fileSystem = window.unkayFileSystem.fileSystem;
-```
-
-#### **BaseApp Atualizado**
-```javascript
-export class MeuApp extends BaseApp {
-    onRun() {
-        // Sistemas disponíveis automaticamente
-        console.log(this.systems.appManager);
-        console.log(this.systems.fileSystem);
-        
-        // Atalhos de teclado integrados
-        this.registerKeyboardShortcut('Ctrl+S', () => {
-            console.log('Salvando...');
-        });
-    }
-    
-    async isActive() {
-        // Verifica se app tem foco (integrado com KeyboardManager)
-        return await super.isActive();
-    }
-}
-```
-
-#### **Seletores DOM Seguros**
-```javascript
-// ❌ Evite (acesso global)
-document.querySelector('#myButton')
-document.getElementById('myElement')
-
-// ✅ Use sempre
-this.$('#myButton')          // Busca dentro da instância
-this.$$('.my-class')         // Busca todos dentro da instância
-```
-
-#### **Comunicação via Eventos**
+### Communication via EventBus
 ```javascript
 import eventBus from '/core/eventBus.js';
 
-// Iniciar outro aplicativo
-eventBus.emit('app:start', { 
-    appId: 'browser', 
-    params: { url: 'https://google.com' } 
-});
-
-// Escutar eventos do sistema
+eventBus.emit('app:start', { appId: 'browser', params: { url: 'https://example.com' } });
 eventBus.on('app:started', ({ appId, instanceId }) => {
-    console.log(`App ${appId} iniciado: ${instanceId}`);
-});
-
-// Eventos do SystemManager
-eventBus.on('system:ready', () => {
-    console.log('Todos os sistemas inicializados');
+  console.log(`${appId} started: ${instanceId}`);
 });
 ```
 
-#### **Parâmetros CLI**
-```javascript
-// Terminal suporta parâmetros modernos
-browser --url https://google.com --incognito
-clock --format 24h
-system-info --detailed
-```
+## Dev Tooling
 
-## 🏗️ Arquitetura do Sistema
+The project uses a modern dev tooling stack with zero runtime dependencies:
 
-### WindowLayerManager
-Gerencia z-index de forma hierárquica:
-```
-NOTIFICATION:     30000  # Notificações do sistema
-MODAL:           20000  # Modais e diálogos
-MENU:            15000  # Menus contextuais
-TASKBAR:         10000  # Barra de tarefas
-DRAGGING:         9000  # Elementos sendo arrastados
-WINDOWS_MAX:      8999  # Janelas maximizadas
-WINDOWS_BASE:      100  # Janelas normais (incrementa dinamicamente)
-DESKTOP_APPS:        5  # Widgets de desktop
-DESKTOP_BACKGROUND:  0  # Papel de parede
-```
+- **Vite** — Build system and dev server with HMR. Auto-detects apps in `apps/*/`.
+- **Vitest** — Test runner with happy-dom for DOM testing and fast-check for property-based tests.
+- **ESLint v9** — Flat config with custom rule to detect `document.querySelector` usage in apps.
+- **Prettier** — Consistent formatting for JS, CSS, and JSON.
+- **TypeScript (checkJs)** — Type checking via JSDoc annotations without converting to .ts files. Type definitions in `core/types/`.
 
-### Sistema de Eventos
-### Eventos do Sistema
-- **system:ready** - Todos os sistemas inicializados
-- **system:shutdown** - Sistema sendo desligado
-- **app:start** - Iniciar aplicativo
-- **app:stop** - Parar aplicativo
-- **app:started** - Aplicativo iniciado com sucesso
-- **app:stopped** - Aplicativo parado
-- **app:killall** - Encerrar todos os aplicativos
+## Included Apps
 
-### Gerenciamento de Instâncias
-Cada aplicativo pode ter múltiplas instâncias simultâneas, cada uma com:
-- **instanceId** único
-- **DOM isolado** (this.appContentRoot)
-- **Ciclo de vida** independente
-- **Z-index** gerenciado automaticamente
-- **Cleanup automático** via SystemManager
+| App | Description |
+|-----|-------------|
+| Terminal | Integrated terminal with CLI commands, history, autocomplete |
+| Browser (theorb) | Web browser with tabs and bookmarks |
+| Clock | Clock and calendar with multiple formats |
+| System Info | CPU, memory, and browser information |
+| Process Manager | Running apps list and instance control |
+| File Manager | Virtual filesystem browser |
+| Text Editor | Basic text editor |
+| Taskbar | App launcher, active apps, system tray |
+| About | System version information |
 
-## 🎨 Sistema de Design
-
-### Tokens Padronizados (v2.0)
-```css
-/* design-system/styles/tokens.css */
-
-/* Cores */
---color-text-primary: #ffffff;
---color-text-secondary: #b3b3b3;
---color-text-disabled: #666666;
---color-background-primary: #1a1a1a;
---color-surface-primary: #2a2a2a;
---color-surface-secondary: #3a3a3a;
---color-surface-hover: #4a4a4a;
---color-border-primary: #444444;
---color-accent-primary: #007acc;
-
-/* Tipografia */
---font-family-primary: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
---font-size-small: 12px;
---font-size-medium: 14px;
---font-size-large: 16px;
---font-weight-normal: 400;
---font-weight-medium: 500;
---font-weight-bold: 700;
-
-/* Espaçamento */
---spacing-small: 8px;
---spacing-medium: 16px;
---spacing-large: 24px;
---spacing-xlarge: 32px;
-
-/* Layout */
---border-radius-small: 4px;
---border-radius-medium: 8px;
---border-radius-large: 12px;
-```
-
-### Componentes Base
-- **Janelas**: Sistema de janelas com barra de título e controles
-- **Botões**: Estilização consistente usando tokens padronizados
-- **Formulários**: Inputs e controles com design system
-- **Bordas de Redimensionamento**: Invisíveis mas funcionais
-
-## 🔧 APIs e Utilitários
-
-### Utilitários de DOM
-```javascript
-this.$(selector)        // Busca um elemento na instância
-this.$$(selector)       // Busca todos os elementos na instância
-```
-
-### EventBus
-```javascript
-eventBus.emit(event, data)     // Emitir evento
-eventBus.on(event, callback)   // Escutar evento
-eventBus.off(event, callback)  // Remover listener
-```
-
-### WindowLayerManager
-```javascript
-windowLayerManager.bringToFront(instanceId, element)
-windowLayerManager.setSystemLayer(element, 'TASKBAR')
-windowLayerManager.setDraggingLayer(element)
-```
-
-## 📱 Aplicativos Inclusos
-
-| Aplicativo | Descrição | Recursos |
-|------------|-----------|----------|
-| **Terminal** | Terminal integrado | Comandos CLI, histórico, autocomplete |
-| **Browser (theorb)** | Navegador web | Abas, favoritos, histórico |
-| **Clock** | Relógio e calendário | Múltiplos formatos, fusos horários |
-| **System Info** | Informações do sistema | CPU, memória, navegador |
-| **Process Manager** | Gerenciador de processos | Lista de apps, controle de instâncias |
-| **Taskbar** | Barra de tarefas | Launcher, apps ativos, sistema |
-| **About** | Sobre o sistema | Informações da versão |
-
-## 🚀 Comandos do Terminal
+## Terminal Commands
 
 ```bash
-# Gerenciamento de aplicativos
-browser --url https://google.com    # Abrir navegador
-clock --format 24h                  # Abrir relógio
-ps                                  # Listar processos
-killall                            # Encerrar todos os apps
-
-# Informações do sistema
-system-info --detailed             # Informações detalhadas
-about                              # Sobre o sistema
-
-# Ajuda
-<app-name> --help                  # Ajuda do aplicativo
-params <app-id>                    # Schema de parâmetros
+browser --url https://example.com   # Open browser
+clock --format 24h                  # Open clock
+ps                                  # List processes
+killall                             # Kill all apps
+system-info --detailed              # Detailed system info
+<app-name> --help                   # App help
 ```
 
-## 🔒 Características de Segurança
+## Contributing
 
-- **Isolamento de DOM**: Cada instância opera em escopo isolado
-- **Sanitização**: Entrada de dados limpa e validada
-- **CSP Ready**: Compatível com Content Security Policy
-- **Event Validation**: Validação de eventos e parâmetros
+1. Fork the project
+2. Create a feature branch (`git checkout -b feature/my-feature`)
+3. Follow the established patterns:
+   - Use design system tokens
+   - Integrate with SystemManager
+   - Implement proper cleanup
+   - Extend BaseApp for new apps
+4. Commit your changes
+5. Open a Pull Request
 
-## 🎯 Roadmap
+### Code Standards
+- CSS: Use design tokens (`var(--color-text-primary)`)
+- JavaScript: Extend `BaseApp` for apps, use `this.$()` for DOM access
+- Systems: Register singletons in `SystemManager`
+- Linting: `npm run lint` must pass with zero errors
 
-### Versão Atual (v2.1)
-- ✅ Sistema de janelas completo
-- ✅ WindowLayerManager dinâmico
-- ✅ Redimensionamento por bordas
-- ✅ Múltiplas instâncias
-- ✅ Sistema CLI integrado
+## License
 
-### Próximas Versões
-## 🔄 Roadmap
+MIT License — see [LICENSE](LICENSE) for details.
 
-### ✅ Versão 2.0 (Atual) - Refatoração Arquitetural
-- ✅ **SystemManager**: Gerenciamento centralizado de estado e singletons
-- ✅ **Design System**: Tokens padronizados e consistência visual
-- ✅ **Cleanup Automático**: Prevenção de vazamentos de memória
-- ✅ **Inicialização Ordenada**: Sistema de boot em 4 fases
-- ✅ **Documentação**: Guias técnicos completos
-
-### 🔄 Próximas Versões
-- 🔄 Sistema de notificações
-- 🔄 Gerenciamento de arquivos avançado
-- 🔄 Sistema de plugins
-- 🔄 Temas personalizáveis dinâmicos
-- 🔄 PWA (Progressive Web App)
-- 🔄 Hot-reload para desenvolvimento
-- 🔄 Health checks avançados
-- 🔄 Sistema de métricas
-
-## 🤝 Contribuição
-
-### Para Desenvolvedores
-1. Fork o projeto
-2. Crie uma branch para sua feature (`git checkout -b feature/nova-feature`)
-3. Siga os padrões arquiteturais estabelecidos:
-   - Use tokens do design system
-   - Integre com o SystemManager
-   - Implemente cleanup adequado
-   - Documente mudanças
-4. Commit suas mudanças (`git commit -am 'Adiciona nova feature'`)
-5. Push para a branch (`git push origin feature/nova-feature`)
-6. Crie um Pull Request
-
-### Padrões de Código
-- **CSS**: Use tokens do design system (`var(--color-text-primary)`)
-- **JavaScript**: Extenda `BaseApp` para novos aplicativos
-- **Sistemas**: Registre no `SystemManager` se for um singleton
-- **Documentação**: Atualize guias relevantes em `/docs`
-
-## 📄 Licença
-
-Este projeto está licenciado sob a MIT License - veja o arquivo [LICENSE](LICENSE) para detalhes.
-
-## 👨‍💻 Autor
+## Author
 
 **Maicon Slaviero**
 - GitHub: [@MaiconSlavieiro](https://github.com/MaiconSlavieiro)
 - Website: [reversodoavesso.online](https://reversodoavesso.online)
-
----
-
-**unkayOS v2.0** - Transformando o navegador em um sistema operacional completo e bem arquitetado. 🚀 
