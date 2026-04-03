@@ -1,5 +1,5 @@
-import { readdirSync, existsSync, readFileSync } from 'node:fs'
-import { resolve, dirname } from 'node:path'
+import { readdirSync, existsSync, readFileSync, cpSync } from 'node:fs'
+import { resolve, dirname, join } from 'node:path'
 import { fileURLToPath } from 'node:url'
 
 const __dirname = dirname(fileURLToPath(import.meta.url))
@@ -14,7 +14,6 @@ function serveAppsRawPlugin() {
     name: 'unkayos-serve-apps-raw',
     configureServer(server) {
       server.middlewares.use((req, res, next) => {
-        // Only intercept requests for app CSS and HTML files
         if (req.url && req.url.startsWith('/apps/') &&
             (req.url.endsWith('.css') || req.url.endsWith('.html'))) {
           const filePath = resolve(__dirname, req.url.slice(1))
@@ -33,43 +32,58 @@ function serveAppsRawPlugin() {
 }
 
 /**
- * Dynamically detects all apps that have an index.html.
- * New apps are automatically included in the build.
+ * Plugin that copies all runtime assets to dist/ after build.
+ *
+ * unkayOS loads everything dynamically at runtime via fetch() and import().
+ * The Vite bundler only processes the main index.html entry point.
+ * All other files (core/, apps/, assets/, etc.) must be copied as-is
+ * so that dynamic imports resolve to the same module identity.
  */
-function getAppEntries() {
-  const appsDir = resolve(__dirname, 'apps')
-  const entries = {}
+function copyRuntimeAssetsPlugin() {
+  return {
+    name: 'unkayos-copy-runtime-assets',
+    closeBundle() {
+      const distDir = resolve(__dirname, 'dist')
+      const dirs = ['apps', 'assets', 'auth', 'core', 'design-system']
 
-  if (!existsSync(appsDir)) return entries
+      for (const dir of dirs) {
+        const src = resolve(__dirname, dir)
+        if (existsSync(src)) {
+          cpSync(src, join(distDir, dir), { recursive: true })
+        }
+      }
 
-  const appDirs = readdirSync(appsDir, { withFileTypes: true })
-    .filter(dirent => dirent.isDirectory())
+      // Copy main.js (loaded via <script type="module"> in index.html)
+      cpSync(resolve(__dirname, 'main.js'), join(distDir, 'main.js'))
 
-  for (const dirent of appDirs) {
-    const indexPath = resolve(appsDir, dirent.name, 'index.html')
-    if (existsSync(indexPath)) {
-      entries[`apps/${dirent.name}/index`] = indexPath
+      console.log('[unkayos] Runtime assets copied to dist/')
     }
   }
-
-  return entries
 }
 
 export default {
   root: '.',
-  plugins: [serveAppsRawPlugin()],
+  plugins: [serveAppsRawPlugin(), copyRuntimeAssetsPlugin()],
   build: {
     outDir: 'dist',
     sourcemap: true,
+    // Only process index.html — don't bundle JS modules.
+    // unkayOS uses dynamic import() for all core and app modules,
+    // so bundling would create duplicate module instances.
     rollupOptions: {
       input: {
-        main: resolve(__dirname, 'index.html'),
-        ...getAppEntries()
+        main: resolve(__dirname, 'index.html')
+      },
+      // Treat all JS as external so Vite doesn't bundle them
+      external: (id) => {
+        if (id.endsWith('.css')) return false
+        if (id.includes('main.js') || id.includes('/core/') || id.includes('/apps/')) return true
+        return false
       }
     }
   },
   appType: 'mpa',
   server: {
-    // HMR is enabled by default in Vite
+    // HMR enabled by default
   }
 }

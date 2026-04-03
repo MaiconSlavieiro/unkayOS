@@ -1,0 +1,6 @@
+services:
+  unkayos:
+    build: .
+    ports:
+      - "3847:80"
+    restart: unless-stopped

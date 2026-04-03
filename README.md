@@ -142,8 +142,8 @@ http://localhost:5173
 | `npm run typecheck` | Type-check with TypeScript (checkJs) |
 | `npm run scaffold` | Scaffold a new app |
 
-### Production
-unkayOS is available online at: [reversodoavesso.online](https://reversodoavesso.online)
+### Live Preview
+Try unkayOS in your browser: [unkayos.reversodoavesso.com](https://unkayos.reversodoavesso.com)
 
 ## System Architecture
 
