@@ -29,3 +29,7 @@ pnpm-debug.log*
 
 # Coverage
 coverage/
+
+# IDE and tool configs
+.kiro/
+.vscode/
